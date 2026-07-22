@@ -145,6 +145,7 @@ function setWorkspaceFromArguments(argv) {
 
 function registerIpc() {
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataPath: dataRoot, platform: process.platform }));
+  ipcMain.handle('app:openData', () => shell.openPath(dataRoot));
   ipcMain.handle('backup:export', async () => {
     const state = readState();
     const backup = {

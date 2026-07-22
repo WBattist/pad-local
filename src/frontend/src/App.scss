@@ -16,7 +16,7 @@ $accent: #78a9ff;
 .sidebar { grid-row: 2; display: flex; min-width: 0; flex-direction: column; border-right: 1px solid $border; background: $panel; overflow: hidden;
   footer { padding: 8px; border-top: 1px solid $border; color: #727c8d; font-size: 10px; span { display: block; padding: 7px 4px 1px; } }
 }
-.backup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+.backup-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
   button { display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid $border; border-radius: 5px; padding: 5px; background: #1b1f27; color: #aab3c1; cursor: pointer; font-size: 10px; &:hover:not(:disabled) { border-color: #44506a; color: white; } &:disabled { opacity: .35; } }
 }
 .sidebar-section { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid $border;

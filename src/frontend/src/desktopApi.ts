@@ -25,6 +25,8 @@ function saveBrowserState(state: BrowserState) {
 
 export const desktopApi = {
   isDesktop: Boolean(window.padDesktop),
+  info: window.padDesktop?.info,
+  openData: window.padDesktop?.openData,
   async listPads() {
     return window.padDesktop ? window.padDesktop.pads.list() : browserState();
   },

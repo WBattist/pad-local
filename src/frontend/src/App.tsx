@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Excalidraw } from '@atyrode/excalidraw';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
 import type { ExcalidrawElement } from '@atyrode/excalidraw/element/types';
-import { ChevronRight, Download, File, FilePlus2, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, Database, Download, File, FilePlus2, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2, Upload } from 'lucide-react';
 import { desktopApi } from './desktopApi';
 import { FileEditor } from './FileEditor';
 import { TerminalPane } from './TerminalPane';
@@ -24,6 +24,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [dataPath, setDataPath] = useState('');
   const saveTimer = useRef<number | undefined>(undefined);
   const latestScene = useRef<LocalScene | null>(null);
   const currentPadId = useRef('');
@@ -69,6 +70,8 @@ export default function App() {
     setWorkspace(nextWorkspace);
     setSelectedFile('');
   }), []);
+
+  useEffect(() => { void desktopApi.info?.().then((info) => setDataPath(info.dataPath)); }, []);
 
   useEffect(() => () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -228,8 +231,9 @@ export default function App() {
           <div className="backup-actions">
             <button onClick={importBackup} disabled={!desktopApi.backup} title="Import backup"><Upload size={13} /> Import</button>
             <button onClick={exportBackup} disabled={!desktopApi.backup} title="Export backup"><Download size={13} /> Export</button>
+            <button onClick={() => desktopApi.openData?.()} disabled={!desktopApi.openData} title={dataPath || 'Open local data'}><Database size={13} /> Data</button>
           </div>
-          <span>{desktopApi.isDesktop ? 'Offline · no account' : 'Browser preview · desktop APIs disabled'}</span>
+          <span title={dataPath}>{desktopApi.isDesktop ? 'Offline · no account' : 'Browser preview · desktop APIs disabled'}</span>
         </footer>
       </aside>
 

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('padDesktop', {
   info: () => ipcRenderer.invoke('app:info'),
+  openData: () => ipcRenderer.invoke('app:openData'),
   backup: {
     export: () => ipcRenderer.invoke('backup:export'),
     import: () => ipcRenderer.invoke('backup:import'),
