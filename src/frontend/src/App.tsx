@@ -15,6 +15,17 @@ const cleanScene = (elements: readonly ExcalidrawElement[], appState: AppState, 
   return serializable;
 };
 
+const normalizeSceneWindows = (input: LocalScene): LocalScene => ({
+  ...input,
+  elements: input.elements.map((element: any) => element?.type === 'embeddable' && String(element.link || '').startsWith('!') ? {
+    ...element,
+    strokeColor: '#29292f',
+    backgroundColor: 'transparent',
+    strokeWidth: 1,
+    roughness: 0,
+  } : element),
+});
+
 function embeddedElement(link: '!terminal' | '!editor', api: ExcalidrawImperativeAPI) {
   const state = api.getAppState();
   const width = 800;
@@ -28,10 +39,10 @@ function embeddedElement(link: '!terminal' | '!editor', api: ExcalidrawImperativ
     width,
     height,
     angle: 0,
-    strokeColor: '#ced4da',
-    backgroundColor: '#111318',
+    strokeColor: '#29292f',
+    backgroundColor: 'transparent',
     fillStyle: 'solid',
-    strokeWidth: 2,
+    strokeWidth: 1,
     strokeStyle: 'solid',
     roughness: 0,
     opacity: 100,
@@ -87,7 +98,7 @@ export default function App() {
     await flushCurrentPad();
     setScene(null);
     await desktopApi.activatePad(id);
-    const loaded = await desktopApi.loadPad(id);
+    const loaded = normalizeSceneWindows(await desktopApi.loadPad(id));
     currentPadId.current = id;
     latestScene.current = loaded;
     setActivePadId(id);
@@ -181,15 +192,51 @@ export default function App() {
     } catch (cause: any) { setError(cause.message); }
   };
 
+  const chooseWorkspace = useCallback(async () => {
+    const result = await desktopApi.workspace?.choose() || null;
+    if (result) setWorkspace(result);
+    return result;
+  }, []);
+
+  const createWorkspaceFile = useCallback(async () => {
+    if (!workspace.path) {
+      const chosen = await desktopApi.workspace?.choose();
+      if (!chosen) return null;
+      setWorkspace(chosen);
+    }
+    const result = await desktopApi.workspace?.createFile();
+    if (!result) return null;
+    setWorkspace(result.workspace);
+    return result.filePath;
+  }, [workspace.path]);
+
+  const refreshWorkspace = useCallback(async () => {
+    const result = await desktopApi.workspace?.refresh();
+    if (result) setWorkspace(result);
+  }, []);
+
+  const closeEmbedded = useCallback((elementId: string) => {
+    if (!canvasApi) return;
+    const elements = canvasApi.getSceneElementsIncludingDeleted().map((item: any) => item.id === elementId ? {
+      ...item,
+      isDeleted: true,
+      version: item.version + 1,
+      versionNonce: Math.floor(Math.random() * 2 ** 30),
+      updated: Date.now(),
+    } : item);
+    canvasApi.updateScene({ elements });
+  }, [canvasApi]);
+
   const renderEmbedded = useCallback((element: any) => {
+    const stopCanvasEvent = (event: any) => event.stopPropagation();
     if (element.link === '!terminal') {
-      return <div className="canvas-window"><TerminalPane workspacePath={workspace.path} embedded /></div>;
+      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><TerminalPane workspacePath={workspace.path} embedded onClose={() => closeEmbedded(element.id)} /></div>;
     }
     if (element.link === '!editor') {
-      return <div className="canvas-window"><EmbeddedEditor element={element} excalidrawAPI={canvasApi} /></div>;
+      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><EmbeddedEditor element={element} excalidrawAPI={canvasApi} workspace={workspace} onChooseWorkspace={chooseWorkspace} onCreateFile={createWorkspaceFile} onRefreshWorkspace={refreshWorkspace} onClose={() => closeEmbedded(element.id)} /></div>;
     }
     return null;
-  }, [canvasApi, workspace.path]);
+  }, [canvasApi, chooseWorkspace, closeEmbedded, createWorkspaceFile, refreshWorkspace, workspace]);
 
   return (
     <main className="canvas-app">
@@ -207,7 +254,7 @@ export default function App() {
             <MainMenu.Group title="Tools">
               <MainMenu.Item icon={<TerminalSquare />} onClick={() => excalidrawApi.current && embeddedElement('!terminal', excalidrawApi.current)}>Terminal</MainMenu.Item>
               <MainMenu.Item icon={<Code2 />} onClick={() => excalidrawApi.current && embeddedElement('!editor', excalidrawApi.current)}>VS Code</MainMenu.Item>
-              <MainMenu.Item icon={<FolderOpen />} onClick={() => desktopApi.workspace?.choose()}>Open workspace folder</MainMenu.Item>
+              <MainMenu.Item icon={<FolderOpen />} onClick={chooseWorkspace}>Open workspace folder</MainMenu.Item>
             </MainMenu.Group>
             <MainMenu.Separator />
             <MainMenu.Group title="Local data">

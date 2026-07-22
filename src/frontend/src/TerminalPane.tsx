@@ -3,7 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-export function TerminalPane({ workspacePath, embedded = false }: { workspacePath: string; embedded?: boolean }) {
+export function TerminalPane({ workspacePath, embedded = false, onClose }: { workspacePath: string; embedded?: boolean; onClose?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const processIdRef = useRef('');
   const [status, setStatus] = useState('Starting terminal…');
@@ -26,6 +26,8 @@ export function TerminalPane({ workspacePath, embedded = false }: { workspacePat
     terminal.loadAddon(fit);
     terminal.open(host);
     fit.fit();
+    const focusTerminal = () => terminal.focus();
+    host.addEventListener('pointerdown', focusTerminal);
     let disposed = false;
     const removeDataListener = api.onData(({ id, data }) => {
       if (id === processIdRef.current) terminal.write(data);
@@ -46,6 +48,7 @@ export function TerminalPane({ workspacePath, embedded = false }: { workspacePat
       input.dispose();
       resize.disconnect();
       removeDataListener();
+      host.removeEventListener('pointerdown', focusTerminal);
       if (processIdRef.current) api.kill(processIdRef.current);
       terminal.dispose();
     };
@@ -53,7 +56,15 @@ export function TerminalPane({ workspacePath, embedded = false }: { workspacePat
 
   return (
     <section className={`terminal-pane ${embedded ? 'embedded' : ''}`}>
-      <header><span>Terminal</span><span className="terminal-cwd">{status}</span></header>
+      <header className="mac-titlebar">
+        <div className="traffic-lights" aria-label="Window controls">
+          <button className="traffic-light close" onClick={onClose} title="Close Terminal" />
+          <span className="traffic-light minimize" />
+          <span className="traffic-light maximize" />
+        </div>
+        <span className="window-title">Terminal</span>
+        <span className="terminal-cwd">{status}</span>
+      </header>
       <div ref={hostRef} className="terminal-host" />
     </section>
   );
