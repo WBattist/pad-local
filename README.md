@@ -26,8 +26,9 @@ x64 is currently supported.
 
 - Pads are JSON documents stored under the app's Electron user-data directory.
 - The canvas is saved automatically as it changes.
-- Embedded VS Code contents are saved inside their pad with the rest of the canvas.
-- A workspace is an optional folder you explicitly choose for terminal sessions.
+- Embedded VS Code windows open and autosave real files inside a folder you choose.
+- File language support is selected automatically from its extension.
+- A workspace is an optional folder you explicitly choose for editor and terminal sessions.
 - Terminal processes run directly on your machine, starting in that selected workspace.
 - Nothing is uploaded by the desktop runtime.
 
@@ -39,7 +40,8 @@ Use **Local data → Open data folder** to see the exact directory used on your 
 app does not remove that data automatically.
 
 Use the canvas menu's **Tools** section to add a Terminal or VS Code window, or to select a workspace
-folder. Double-click a footer tab to rename its pad.
+folder. Click inside a window to interact with it, use its red window control to close it, and
+double-click a footer tab to rename its pad.
 
 You can also open a workspace folder from a terminal, similar to other local development tools:
 
