@@ -47,12 +47,35 @@ export function EmbeddedEditor({
   const [asset, setAsset] = useState<{ dataUrl: string; mime: string; size: number } | null>(null);
   const [status, setStatus] = useState('');
   const [explorerOpen, setExplorerOpen] = useState(true);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set());
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
   const saveRef = useRef<() => void>(() => {});
   const dirty = loaded && !asset && contents !== savedContents;
   const filename = filenameFor(filePath);
   const language = languageFor(filePath);
   const workspaceName = useMemo(() => workspace.path.split(/[\\/]/).pop() || 'No folder open', [workspace.path]);
+  const visibleEntries = useMemo(() => workspace.files.filter((entry) => {
+    const parts = entry.relativePath.split(/[\\/]/);
+    if (parts.length <= 1) return true;
+    let parent = '';
+    for (const part of parts.slice(0, -1)) {
+      parent = parent ? `${parent}/${part}` : part;
+      if (!expandedFolders.has(parent)) return false;
+    }
+    return true;
+  }), [expandedFolders, workspace.files]);
+
+  useEffect(() => setExpandedFolders(new Set()), [workspace.path]);
+
+  const toggleFolder = (relativePath: string) => {
+    const normalized = relativePath.replaceAll('\\', '/');
+    setExpandedFolders((current) => {
+      const next = new Set(current);
+      if (next.has(normalized)) next.delete(normalized);
+      else next.add(normalized);
+      return next;
+    });
+  };
 
   const rememberFile = useCallback((nextFilePath: string) => {
     if (!excalidrawAPI) return;
@@ -162,19 +185,22 @@ export function EmbeddedEditor({
               <ChevronRight size={12} /><strong>{workspaceName}</strong>
             </button>
             <div className="vscode-files">
-              {workspace.files.map((entry) => (
+              {visibleEntries.map((entry) => {
+                const folderKey = entry.relativePath.replaceAll('\\', '/');
+                const expanded = expandedFolders.has(folderKey);
+                return (
                 <button
                   key={entry.path}
                   className={`vscode-file ${filePath === entry.path ? 'active' : ''}`}
                   style={{ paddingLeft: `${8 + entry.depth * 12}px` }}
-                  disabled={entry.type === 'directory'}
-                  onClick={() => entry.type === 'file' && setFilePath(entry.path)}
+                  onClick={() => entry.type === 'directory' ? toggleFolder(entry.relativePath) : setFilePath(entry.path)}
                   title={entry.relativePath}
                 >
+                  {entry.type === 'directory' && <ChevronRight className={`folder-chevron ${expanded ? 'expanded' : ''}`} size={12} />}
                   {entry.type === 'directory' ? <Folder size={13} /> : isImageFile(entry.path) ? <ImageIcon size={13} /> : <FileCode2 size={13} />}
                   <span>{entry.name}</span>
                 </button>
-              ))}
+              );})}
             </div>
           </aside>
         )}

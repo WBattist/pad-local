@@ -1,6 +1,6 @@
 {
   "name": "pad-local-desktop",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "private": true,
   "description": "A self-contained local whiteboard and development workspace",
   "main": "electron/main.cjs",
