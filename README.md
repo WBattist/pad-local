@@ -1,8 +1,8 @@
 # Pad Local
 
 Pad Local is a private, local-first whiteboard and development workspace packaged as a normal
-desktop app. It combines an Excalidraw canvas, a Monaco code editor, a workspace file browser,
-and a terminal in one window.
+desktop app. The Excalidraw canvas fills the window, pad tabs live in the canvas footer, and
+Terminal or VS Code windows can be placed, moved, and resized directly on the board.
 
 There is no login, Docker stack, database, browser server, or cloud account. Install the app and
 open it.
@@ -26,16 +26,20 @@ x64 is currently supported.
 
 - Pads are JSON documents stored under the app's Electron user-data directory.
 - The canvas is saved automatically as it changes.
-- A workspace is a folder you explicitly choose. The editor reads and writes only inside it.
-- Terminal processes run directly on your machine, starting in the selected workspace.
+- Embedded VS Code contents are saved inside their pad with the rest of the canvas.
+- A workspace is an optional folder you explicitly choose for terminal sessions.
+- Terminal processes run directly on your machine, starting in that selected workspace.
 - Nothing is uploaded by the desktop runtime.
 
-Use **Export** in the sidebar to save every pad to a portable JSON backup. **Import** adds copies
-from a backup without replacing the pads already on the machine. Workspace source files remain in
-their original folder and are not duplicated into pad backups.
+Use **Local data → Export backup** in the canvas menu to save every pad to a portable JSON backup.
+**Import backup** adds copies without replacing pads already on the machine. Workspace source files
+remain in their original folder and are not duplicated into pad backups.
 
-The Data location shown in the app's status bar is the exact directory used on your machine.
-Removing the app does not remove that data automatically.
+Use **Local data → Open data folder** to see the exact directory used on your machine. Removing the
+app does not remove that data automatically.
+
+Use the canvas menu's **Tools** section to add a Terminal or VS Code window, or to select a workspace
+folder. Double-click a footer tab to rename its pad.
 
 You can also open a workspace folder from a terminal, similar to other local development tools:
 
