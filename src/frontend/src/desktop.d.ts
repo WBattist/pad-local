@@ -24,13 +24,16 @@ declare global {
         refresh(): Promise<WorkspaceSnapshot>;
         createFile(): Promise<{ filePath: string; workspace: WorkspaceSnapshot } | null>;
         read(path: string): Promise<string>;
+        readAsset(path: string): Promise<{ dataUrl: string; mime: string; size: number }>;
         write(path: string, contents: string): Promise<boolean>;
         reveal(path: string): Promise<void>;
+        openInVSCode(path?: string): Promise<{ opened: boolean; message: string }>;
         onChanged(callback: (workspace: WorkspaceSnapshot) => void): () => void;
       };
       terminal: {
         start(cwd?: string): Promise<{ id: string; cwd: string }>;
         write(id: string, data: string): Promise<boolean>;
+        resize(id: string, columns: number, rows: number): Promise<boolean>;
         kill(id: string): Promise<boolean>;
         onData(callback: (payload: { id: string; data: string }) => void): () => void;
       };

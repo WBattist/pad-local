@@ -24,8 +24,8 @@ $blue: #0a84ff;
 .loading-panel { width: 100%; height: 100%; display: grid; place-items: center; color: #9ca3af; }
 
 /* Excalidraw intentionally disables interaction on custom embeds by default. */
-.excalidraw__embeddable__outer { padding: 0 !important; pointer-events: all !important; }
-.excalidraw__embeddable-container__inner { overflow: visible !important; border: 0 !important; }
+.excalidraw__embeddable__outer { box-sizing: border-box; padding: 0 !important; pointer-events: all !important; }
+.excalidraw__embeddable-container__inner { overflow: hidden !important; border: 0 !important; pointer-events: all !important; }
 .excalidraw__embeddable-container .excalidraw__embeddable__outer > * { border-radius: 13px !important; }
 
 .canvas-tabs {
@@ -61,27 +61,33 @@ $blue: #0a84ff;
 .local-save-state.saving { color: #ffd60a; animation: soft-pulse 1s ease infinite; }
 
 .canvas-window {
-  width: 100%; height: 100%; overflow: hidden; border: 1px solid rgba(255,255,255,.10);
+  position: relative; width: 100%; height: 100%; overflow: hidden; border: 1px solid rgba(255,255,255,.08);
   border-radius: 13px; background: #171719; box-shadow: 0 28px 70px #0009, 0 2px 8px #0008, inset 0 1px #ffffff12;
   pointer-events: all !important; animation: window-enter .36s cubic-bezier(.16,1,.3,1) both;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 .canvas-window:focus-within { border-color: rgba(255,255,255,.18); box-shadow: 0 32px 80px #000a, 0 2px 9px #0008, 0 0 0 1px #0a84ff40; }
+.window-drag-handle { cursor: grab; }
+.window-drag-handle button { cursor: pointer; }
+html[data-window-gesture="move"], html[data-window-gesture="move"] * { cursor: grabbing !important; user-select: none !important; }
+html[data-window-gesture="resize"], html[data-window-gesture="resize"] * { cursor: nwse-resize !important; user-select: none !important; }
+.window-resize-handle {
+  position: absolute; z-index: 20; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 0 54%, #ffffff12 55% 61%, transparent 62% 69%, #ffffff25 70% 76%, transparent 77%);
+}
 
 .mac-titlebar {
-  height: 38px; min-height: 38px; flex: 0 0 38px; display: grid; grid-template-columns: 108px minmax(0,1fr) 108px;
+  height: 38px; min-height: 38px; flex: 0 0 38px; display: grid; grid-template-columns: 48px minmax(0,1fr) 132px;
   align-items: center; padding: 0 12px; border-bottom: 1px solid $line; color: #c9c9d0;
   background: linear-gradient(180deg, rgba(49,49,53,.96), rgba(36,36,40,.96));
   box-shadow: inset 0 1px #ffffff0d; user-select: none;
 }
-.traffic-lights { display: flex; align-items: center; gap: 8px; }
+.traffic-lights { display: flex; align-items: center; }
 .traffic-light { width: 12px; height: 12px; min-width: 12px; padding: 0; border: 0; border-radius: 50%; box-shadow: inset 0 0 0 .5px #0005; transition: filter .18s ease, transform .18s ease; }
 button.traffic-light { cursor: pointer; }
 .traffic-light:hover { filter: brightness(1.15); transform: scale(1.08); }
 .traffic-light:active { transform: scale(.9); }
 .traffic-light.close { background: #ff5f57; }
-.traffic-light.minimize { background: #febc2e; }
-.traffic-light.maximize { background: #28c840; }
 .window-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; color: #d7d7dd; font-size: 12px; font-weight: 600; }
 .titlebar-actions { display: flex; justify-content: flex-end; gap: 2px; }
 .titlebar-actions button, .vscode-explorer header button {
@@ -93,7 +99,7 @@ button.traffic-light { cursor: pointer; }
 .titlebar-actions button:disabled, .vscode-explorer header button:disabled { opacity: .28; cursor: default; }
 
 .terminal-pane { width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: rgba(12,12,14,.97); }
-.terminal-pane .mac-titlebar { grid-template-columns: 92px 92px minmax(0,1fr); }
+.terminal-pane .mac-titlebar { grid-template-columns: 48px 92px minmax(0,1fr); }
 .terminal-pane .window-title { text-align: left; }
 .terminal-cwd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #74747e; font-size: 10px; }
 .terminal-host { flex: 1; min-height: 0; padding: 11px 12px; background: radial-gradient(circle at 50% -30%, #25252a 0, #0c0c0e 55%); }
@@ -116,6 +122,17 @@ button.traffic-light { cursor: pointer; }
 .vscode-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vscode-tab i { width: 6px; height: 6px; border-radius: 50%; background: #0a84ff; }
 .vscode-monaco { flex: 1; min-height: 0; border-top: 1px solid $line; }
+.vscode-image-preview { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid $line; background: #151518; }
+.image-stage {
+  flex: 1; min-height: 0; display: grid; place-items: center; overflow: auto; padding: 28px;
+  background-color: #1b1b1f;
+  background-image: linear-gradient(45deg, #ffffff08 25%, transparent 25%), linear-gradient(-45deg, #ffffff08 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ffffff08 75%), linear-gradient(-45deg, transparent 75%, #ffffff08 75%);
+  background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+.image-stage img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; filter: drop-shadow(0 18px 30px #0008); animation: window-enter .25s cubic-bezier(.16,1,.3,1); }
+.image-details { height: 38px; min-height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-top: 1px solid $line; color: #b8b8c1; font-size: 10px; }
+.image-details strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-details span { color: #74747e; }
 .vscode-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; background: radial-gradient(circle at 50% 32%, #292932 0, #1e1e22 48%); }
 .vscode-mark { width: 62px; height: 62px; margin-bottom: 8px; color: #0a84ff; filter: drop-shadow(0 10px 22px #0a84ff4d); animation: window-enter .5s .08s cubic-bezier(.16,1,.3,1) both; }
 .vscode-mark svg { width: 100%; height: 100%; fill: currentColor; }

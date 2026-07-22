@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-export function TerminalPane({ workspacePath, embedded = false, onClose }: { workspacePath: string; embedded?: boolean; onClose?: () => void }) {
+export function TerminalPane({ workspacePath, embedded = false, onClose, onDragStart }: { workspacePath: string; embedded?: boolean; onClose?: () => void; onDragStart?: (event: ReactPointerEvent<HTMLElement>) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const processIdRef = useRef('');
   const [status, setStatus] = useState('Starting terminal…');
@@ -26,7 +27,11 @@ export function TerminalPane({ workspacePath, embedded = false, onClose }: { wor
     terminal.loadAddon(fit);
     terminal.open(host);
     fit.fit();
-    const focusTerminal = () => terminal.focus();
+    const focusTerminal = (event: PointerEvent) => {
+      event.stopPropagation();
+      terminal.focus();
+      terminal.textarea?.focus({ preventScroll: true });
+    };
     host.addEventListener('pointerdown', focusTerminal);
     let disposed = false;
     const removeDataListener = api.onData(({ id, data }) => {
@@ -36,12 +41,17 @@ export function TerminalPane({ workspacePath, embedded = false, onClose }: { wor
       if (disposed) return api.kill(id);
       processIdRef.current = id;
       setStatus(cwd);
+      fit.fit();
+      void api.resize(id, terminal.cols, terminal.rows);
       terminal.focus();
     }).catch((error) => setStatus(error.message));
     const input = terminal.onData((data) => {
       if (processIdRef.current) api.write(processIdRef.current, data);
     });
-    const resize = new ResizeObserver(() => fit.fit());
+    const resize = new ResizeObserver(() => {
+      fit.fit();
+      if (processIdRef.current) void api.resize(processIdRef.current, terminal.cols, terminal.rows);
+    });
     resize.observe(host);
     return () => {
       disposed = true;
@@ -56,11 +66,9 @@ export function TerminalPane({ workspacePath, embedded = false, onClose }: { wor
 
   return (
     <section className={`terminal-pane ${embedded ? 'embedded' : ''}`}>
-      <header className="mac-titlebar">
+      <header className="mac-titlebar window-drag-handle" onPointerDown={onDragStart}>
         <div className="traffic-lights" aria-label="Window controls">
           <button className="traffic-light close" onClick={onClose} title="Close Terminal" />
-          <span className="traffic-light minimize" />
-          <span className="traffic-light maximize" />
         </div>
         <span className="window-title">Terminal</span>
         <span className="terminal-cwd">{status}</span>

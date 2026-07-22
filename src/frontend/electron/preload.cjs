@@ -22,8 +22,10 @@ contextBridge.exposeInMainWorld('padDesktop', {
     refresh: () => ipcRenderer.invoke('workspace:refresh'),
     createFile: () => ipcRenderer.invoke('workspace:createFile'),
     read: (filePath) => ipcRenderer.invoke('workspace:read', filePath),
+    readAsset: (filePath) => ipcRenderer.invoke('workspace:readAsset', filePath),
     write: (filePath, contents) => ipcRenderer.invoke('workspace:write', filePath, contents),
     reveal: (filePath) => ipcRenderer.invoke('workspace:reveal', filePath),
+    openInVSCode: (filePath) => ipcRenderer.invoke('workspace:openInVSCode', filePath),
     onChanged: (callback) => {
       const listener = (_event, payload) => callback(payload);
       ipcRenderer.on('workspace:changed', listener);
@@ -33,6 +35,7 @@ contextBridge.exposeInMainWorld('padDesktop', {
   terminal: {
     start: (cwd) => ipcRenderer.invoke('terminal:start', cwd),
     write: (id, data) => ipcRenderer.invoke('terminal:write', id, data),
+    resize: (id, columns, rows) => ipcRenderer.invoke('terminal:resize', id, columns, rows),
     kill: (id) => ipcRenderer.invoke('terminal:kill', id),
     onData: (callback) => {
       const listener = (_event, payload) => callback(payload);

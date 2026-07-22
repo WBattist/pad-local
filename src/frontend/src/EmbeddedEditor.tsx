@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import Editor from '@monaco-editor/react';
 import type { ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
-import { ChevronRight, FileCode2, Folder, FolderOpen, PanelLeft, Plus, RefreshCw, Save } from 'lucide-react';
+import { ChevronRight, ExternalLink, FileCode2, Folder, FolderOpen, Image as ImageIcon, PanelLeft, Plus, RefreshCw, Save } from 'lucide-react';
 import './monacoSetup';
 
 const languageFor = (filePath: string) => {
@@ -15,6 +16,8 @@ const languageFor = (filePath: string) => {
 };
 
 const filenameFor = (filePath: string) => filePath.split(/[\\/]/).pop() || 'Welcome';
+const imageExtensions = new Set(['avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp']);
+const isImageFile = (filePath: string) => imageExtensions.has(filePath.split('.').pop()?.toLowerCase() || '');
 
 interface EmbeddedEditorProps {
   element: any;
@@ -24,6 +27,7 @@ interface EmbeddedEditorProps {
   onCreateFile(): Promise<string | null>;
   onRefreshWorkspace(): Promise<void>;
   onClose(): void;
+  onDragStart(event: ReactPointerEvent<HTMLElement>): void;
 }
 
 export function EmbeddedEditor({
@@ -34,16 +38,18 @@ export function EmbeddedEditor({
   onCreateFile,
   onRefreshWorkspace,
   onClose,
+  onDragStart,
 }: EmbeddedEditorProps) {
   const [filePath, setFilePath] = useState<string>(() => element.customData?.editorFilePath || '');
   const [contents, setContents] = useState('');
   const [savedContents, setSavedContents] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [asset, setAsset] = useState<{ dataUrl: string; mime: string; size: number } | null>(null);
   const [status, setStatus] = useState('');
   const [explorerOpen, setExplorerOpen] = useState(true);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
   const saveRef = useRef<() => void>(() => {});
-  const dirty = loaded && contents !== savedContents;
+  const dirty = loaded && !asset && contents !== savedContents;
   const filename = filenameFor(filePath);
   const language = languageFor(filePath);
   const workspaceName = useMemo(() => workspace.path.split(/[\\/]/).pop() || 'No folder open', [workspace.path]);
@@ -66,11 +72,21 @@ export function EmbeddedEditor({
     }
     let active = true;
     setLoaded(false);
+    setAsset(null);
     setStatus('Opening…');
-    window.padDesktop?.workspace.read(filePath).then((value) => {
+    const request: Promise<string | { dataUrl: string; mime: string; size: number }> | undefined = isImageFile(filePath)
+      ? window.padDesktop?.workspace.readAsset(filePath)
+      : window.padDesktop?.workspace.read(filePath);
+    request?.then((value) => {
       if (!active) return;
-      setContents(value);
-      setSavedContents(value);
+      if (typeof value === 'string') {
+        setContents(value);
+        setSavedContents(value);
+      } else {
+        setContents('');
+        setSavedContents('');
+        setAsset(value);
+      }
       setLoaded(true);
       setStatus('');
       rememberFile(filePath);
@@ -115,19 +131,25 @@ export function EmbeddedEditor({
     }
   };
 
+  const openInVSCode = async () => {
+    const result = await window.padDesktop?.workspace.openInVSCode(filePath || workspace.path);
+    if (!result) return;
+    setStatus(result.message);
+    window.setTimeout(() => setStatus(''), 1800);
+  };
+
   return (
     <section className="embedded-editor">
-      <header className="mac-titlebar">
+      <header className="mac-titlebar window-drag-handle" onPointerDown={onDragStart}>
         <div className="traffic-lights" aria-label="Window controls">
           <button className="traffic-light close" onClick={onClose} title="Close VS Code" />
-          <span className="traffic-light minimize" />
-          <span className="traffic-light maximize" />
         </div>
         <span className="window-title">{filePath ? `${filename}${dirty ? ' •' : ''}` : 'VS Code'}</span>
         <div className="titlebar-actions">
           <button onClick={() => setExplorerOpen((value) => !value)} title="Toggle Explorer"><PanelLeft size={14} /></button>
           <button onClick={createFile} title="New file"><Plus size={15} /></button>
           <button onClick={chooseWorkspace} title="Open folder"><FolderOpen size={14} /></button>
+          <button onClick={openInVSCode} disabled={!workspace.path} title="Open in desktop VS Code with your extensions"><ExternalLink size={14} /></button>
           <button onClick={() => void save()} disabled={!dirty} title="Save"><Save size={14} /></button>
         </div>
       </header>
@@ -149,7 +171,7 @@ export function EmbeddedEditor({
                   onClick={() => entry.type === 'file' && setFilePath(entry.path)}
                   title={entry.relativePath}
                 >
-                  {entry.type === 'directory' ? <Folder size={13} /> : <FileCode2 size={13} />}
+                  {entry.type === 'directory' ? <Folder size={13} /> : isImageFile(entry.path) ? <ImageIcon size={13} /> : <FileCode2 size={13} />}
                   <span>{entry.name}</span>
                 </button>
               ))}
@@ -160,23 +182,30 @@ export function EmbeddedEditor({
         <div className="vscode-editor-area">
           {filePath ? (
             <>
-              <div className="vscode-tab"><FileCode2 size={13} /><span>{filename}</span>{dirty && <i />}</div>
-              <div className="vscode-monaco">
-                <Editor
-                  path={filePath}
-                  theme="vs-dark"
-                  language={language}
-                  value={contents}
-                  onChange={(next) => setContents(next || '')}
-                  onMount={(editor, monaco) => {
-                    editor.focus();
-                    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveRef.current());
-                    editor.onDidChangeCursorPosition(({ position }) => setCursor({ line: position.lineNumber, column: position.column }));
-                  }}
-                  loading={<div className="editor-loading">Opening {filename}…</div>}
-                  options={{ minimap: { enabled: false }, fontSize: 13, automaticLayout: true, scrollBeyondLastLine: false, padding: { top: 12 }, smoothScrolling: true }}
-                />
-              </div>
+              <div className="vscode-tab">{asset ? <ImageIcon size={13} /> : <FileCode2 size={13} />}<span>{filename}</span>{dirty && <i />}</div>
+              {asset ? (
+                <div className="vscode-image-preview">
+                  <div className="image-stage"><img src={asset.dataUrl} alt={filename} /></div>
+                  <div className="image-details"><strong>{filename}</strong><span>{asset.mime.replace('image/', '').toUpperCase()} · {formatBytes(asset.size)}</span></div>
+                </div>
+              ) : (
+                <div className="vscode-monaco">
+                  <Editor
+                    path={filePath}
+                    theme="vs-dark"
+                    language={language}
+                    value={contents}
+                    onChange={(next) => setContents(next || '')}
+                    onMount={(editor, monaco) => {
+                      editor.focus();
+                      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveRef.current());
+                      editor.onDidChangeCursorPosition(({ position }) => setCursor({ line: position.lineNumber, column: position.column }));
+                    }}
+                    loading={<div className="editor-loading">Opening {filename}…</div>}
+                    options={{ minimap: { enabled: false }, fontSize: 13, automaticLayout: true, scrollBeyondLastLine: false, padding: { top: 12 }, smoothScrolling: true }}
+                  />
+                </div>
+              )}
             </>
           ) : (
             <div className="vscode-welcome">
@@ -188,13 +217,19 @@ export function EmbeddedEditor({
           )}
           <footer className="vscode-statusbar">
             <span>{status || (workspace.path ? workspaceName : 'Open a folder to begin')}</span>
-            <span>{filePath && `Ln ${cursor.line}, Col ${cursor.column}`}</span>
-            <span>{filePath && language}</span>
+            <span>{filePath && !asset && `Ln ${cursor.line}, Col ${cursor.column}`}</span>
+            <span>{filePath && (asset ? 'image preview' : language)}</span>
           </footer>
         </div>
       </div>
     </section>
   );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function CodeMark() {

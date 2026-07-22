@@ -1,6 +1,6 @@
 {
   "name": "pad-local-desktop",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "description": "A self-contained local whiteboard and development workspace",
   "main": "electron/main.cjs",
@@ -9,6 +9,7 @@
     "@atyrode/excalidraw": "^0.18.0-15",
     "@monaco-editor/react": "^4.7.0",
     "monaco-editor": "^0.56.0",
+    "node-pty": "^1.1.0",
     "lucide-react": "^0.488.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -43,6 +44,9 @@
     "productName": "Pad Local",
     "asar": true,
     "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/node-pty/**/*"
+    ],
     "directories": {
       "app": "desktop-app",
       "output": "release"
@@ -75,5 +79,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "node-pty"
+    ]
   }
 }

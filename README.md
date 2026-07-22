@@ -28,8 +28,9 @@ x64 is currently supported.
 - The canvas is saved automatically as it changes.
 - Embedded VS Code windows open and autosave real files inside a folder you choose.
 - File language support is selected automatically from its extension.
+- Common image formats open in a fitted preview instead of being decoded as text.
 - A workspace is an optional folder you explicitly choose for editor and terminal sessions.
-- Terminal processes run directly on your machine, starting in that selected workspace.
+- Terminal processes run in a real local PTY, starting in that selected workspace.
 - Nothing is uploaded by the desktop runtime.
 
 Use **Local data → Export backup** in the canvas menu to save every pad to a portable JSON backup.
@@ -41,7 +42,9 @@ app does not remove that data automatically.
 
 Use the canvas menu's **Tools** section to add a Terminal or VS Code window, or to select a workspace
 folder. Click inside a window to interact with it, use its red window control to close it, and
-double-click a footer tab to rename its pad.
+double-click a footer tab to rename its pad. Drag a window by its title bar and resize it from the
+lower-right corner. The editor's external-arrow action opens the current file in an installed
+Visual Studio Code instance, where the user's normal VS Code extensions remain available.
 
 You can also open a workspace folder from a terminal, similar to other local development tools:
 

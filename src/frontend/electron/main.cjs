@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
+const pty = require('node-pty');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -310,6 +311,19 @@ function registerIpc() {
     if (!stats.isFile() || stats.size > 5 * 1024 * 1024) throw new Error('Only text files under 5 MB can be opened.');
     return fs.readFileSync(resolved, 'utf8');
   });
+  ipcMain.handle('workspace:readAsset', (_event, filePath) => {
+    const resolved = safeWorkspacePath(filePath);
+    const stats = fs.statSync(resolved);
+    const extension = path.extname(resolved).toLowerCase();
+    const mime = {
+      '.avif': 'image/avif', '.bmp': 'image/bmp', '.gif': 'image/gif', '.ico': 'image/x-icon',
+      '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml',
+      '.webp': 'image/webp',
+    }[extension];
+    if (!stats.isFile() || !mime) throw new Error('This file does not have an in-app preview.');
+    if (stats.size > 30 * 1024 * 1024) throw new Error('Images larger than 30 MB cannot be previewed.');
+    return { dataUrl: `data:${mime};base64,${fs.readFileSync(resolved).toString('base64')}`, mime, size: stats.size };
+  });
   ipcMain.handle('workspace:write', (_event, filePath, contents) => {
     const resolved = safeWorkspacePath(filePath);
     const value = String(contents);
@@ -318,31 +332,57 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('workspace:reveal', (_event, targetPath) => shell.showItemInFolder(safeWorkspacePath(targetPath)));
+  ipcMain.handle('workspace:openInVSCode', async (_event, targetPath) => {
+    const resolved = targetPath ? safeWorkspacePath(targetPath) : currentWorkspace();
+    if (!resolved) throw new Error('Choose a workspace folder first.');
+    const candidates = process.platform === 'win32'
+      ? [
+          process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs', 'Microsoft VS Code', 'Code.exe'),
+          process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Microsoft VS Code', 'Code.exe'),
+          process.env['ProgramFiles(x86)'] && path.join(process.env['ProgramFiles(x86)'], 'Microsoft VS Code', 'Code.exe'),
+        ].filter(Boolean)
+      : process.platform === 'darwin'
+        ? ['/Applications/Visual Studio Code.app/Contents/MacOS/Electron']
+        : ['/usr/bin/code', '/usr/local/bin/code', '/snap/bin/code'];
+    const executable = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!executable) return { opened: false, message: 'Visual Studio Code was not found on this computer.' };
+    const child = spawn(executable, ['--reuse-window', resolved], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.unref();
+    return { opened: true, message: 'Opened in Visual Studio Code.' };
+  });
 
   ipcMain.handle('terminal:start', (_event, requestedDirectory) => {
     const cwd = requestedDirectory ? safeWorkspacePath(requestedDirectory) : currentWorkspace() || app.getPath('home');
     const id = crypto.randomUUID();
-    const executable = process.platform === 'win32' ? 'cmd.exe' : (process.env.SHELL || '/bin/sh');
-    const args = process.platform === 'win32' ? ['/Q', '/K'] : ['-i'];
-    const child = spawn(executable, args, { cwd, windowsHide: true, env: { ...process.env, TERM: 'xterm-256color' } });
-    terminals.set(id, child);
-    const emit = (data) => mainWindow?.webContents.send('terminal:data', { id, data: data.toString() });
-    child.stdout.on('data', emit);
-    child.stderr.on('data', emit);
-    child.on('error', (error) => emit(`\r\n[terminal error: ${error.message}]\r\n`));
-    child.on('exit', (code) => { emit(`\r\n[process exited ${code ?? ''}]\r\n`); terminals.delete(id); });
+    const executable = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : (process.env.SHELL || '/bin/sh');
+    const args = process.platform === 'win32' ? [] : ['-i'];
+    const terminal = pty.spawn(executable, args, {
+      name: 'xterm-256color', cols: 100, rows: 30, cwd,
+      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+    });
+    terminals.set(id, terminal);
+    terminal.onData((data) => mainWindow?.webContents.send('terminal:data', { id, data }));
+    terminal.onExit(({ exitCode }) => {
+      mainWindow?.webContents.send('terminal:data', { id, data: `\r\n[process exited ${exitCode ?? ''}]\r\n` });
+      terminals.delete(id);
+    });
     return { id, cwd };
   });
   ipcMain.handle('terminal:write', (_event, id, data) => {
-    const child = terminals.get(id);
-    if (!child || child.killed || !child.stdin.writable) return false;
-    const input = process.platform === 'win32' ? String(data).replace(/\r/g, '\r\n') : String(data);
-    child.stdin.write(input);
+    const terminal = terminals.get(id);
+    if (!terminal) return false;
+    terminal.write(String(data));
+    return true;
+  });
+  ipcMain.handle('terminal:resize', (_event, id, columns, rows) => {
+    const terminal = terminals.get(id);
+    if (!terminal) return false;
+    terminal.resize(Math.max(2, Number(columns) || 80), Math.max(1, Number(rows) || 24));
     return true;
   });
   ipcMain.handle('terminal:kill', (_event, id) => {
-    const child = terminals.get(id);
-    if (child && !child.killed) child.kill();
+    const terminal = terminals.get(id);
+    if (terminal) terminal.kill();
     terminals.delete(id);
     return true;
   });

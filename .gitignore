@@ -4,6 +4,7 @@ release
 dist
 src/frontend/desktop-app/electron/
 src/frontend/public/fonts/
+src/frontend/public/assets/monaco/
 **/__pycache__/
 config/runtime.env
 config/runtime/

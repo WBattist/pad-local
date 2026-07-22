@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Excalidraw, Footer, MainMenu } from '@atyrode/excalidraw';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
 import type { ExcalidrawElement } from '@atyrode/excalidraw/element/types';
@@ -19,10 +20,17 @@ const normalizeSceneWindows = (input: LocalScene): LocalScene => ({
   ...input,
   elements: input.elements.map((element: any) => element?.type === 'embeddable' && String(element.link || '').startsWith('!') ? {
     ...element,
-    strokeColor: '#29292f',
+    strokeColor: 'transparent',
     backgroundColor: 'transparent',
     strokeWidth: 1,
     roughness: 0,
+    locked: true,
+    customData: {
+      ...element.customData,
+      showHyperlinkIcon: false,
+      showClickableHint: false,
+      borderOffsets: { left: 0, right: 0, top: 0, bottom: 0 },
+    },
   } : element),
 });
 
@@ -39,7 +47,7 @@ function embeddedElement(link: '!terminal' | '!editor', api: ExcalidrawImperativ
     width,
     height,
     angle: 0,
-    strokeColor: '#29292f',
+    strokeColor: 'transparent',
     backgroundColor: 'transparent',
     fillStyle: 'solid',
     strokeWidth: 1,
@@ -57,12 +65,12 @@ function embeddedElement(link: '!terminal' | '!editor', api: ExcalidrawImperativ
     boundElements: [],
     updated: Date.now(),
     link,
-    locked: false,
+    locked: true,
     customData: {
       title: link === '!terminal' ? 'Terminal' : 'VS Code',
       showHyperlinkIcon: false,
       showClickableHint: false,
-      borderOffsets: { left: 8, right: 8, top: 34, bottom: 8 },
+      borderOffsets: { left: 0, right: 0, top: 0, bottom: 0 },
     },
   } as any;
   api.updateScene({ elements: [...api.getSceneElementsIncludingDeleted(), element] });
@@ -227,16 +235,53 @@ export default function App() {
     canvasApi.updateScene({ elements });
   }, [canvasApi]);
 
+  const manipulateEmbedded = useCallback((elementId: string, event: ReactPointerEvent<HTMLElement>, mode: 'move' | 'resize') => {
+    if (!canvasApi || event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    const startElement = canvasApi.getSceneElementsIncludingDeleted().find((item: any) => item.id === elementId) as any;
+    if (!startElement) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const zoom = canvasApi.getAppState().zoom?.value || 1;
+    document.documentElement.dataset.windowGesture = mode;
+
+    const move = (pointerEvent: PointerEvent) => {
+      pointerEvent.preventDefault();
+      const dx = (pointerEvent.clientX - startX) / zoom;
+      const dy = (pointerEvent.clientY - startY) / zoom;
+      const elements = canvasApi.getSceneElementsIncludingDeleted().map((item: any) => item.id === elementId ? {
+        ...item,
+        ...(mode === 'move'
+          ? { x: startElement.x + dx, y: startElement.y + dy }
+          : { width: Math.max(440, startElement.width + dx), height: Math.max(300, startElement.height + dy) }),
+        version: item.version + 1,
+        versionNonce: Math.floor(Math.random() * 2 ** 30),
+        updated: Date.now(),
+      } : item);
+      canvasApi.updateScene({ elements });
+    };
+    const finish = () => {
+      delete document.documentElement.dataset.windowGesture;
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', finish, true);
+      window.removeEventListener('pointercancel', finish, true);
+    };
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', finish, true);
+    window.addEventListener('pointercancel', finish, true);
+  }, [canvasApi]);
+
   const renderEmbedded = useCallback((element: any) => {
     const stopCanvasEvent = (event: any) => event.stopPropagation();
     if (element.link === '!terminal') {
-      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><TerminalPane workspacePath={workspace.path} embedded onClose={() => closeEmbedded(element.id)} /></div>;
+      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><TerminalPane workspacePath={workspace.path} embedded onClose={() => closeEmbedded(element.id)} onDragStart={(event) => manipulateEmbedded(element.id, event, 'move')} /><i className="window-resize-handle" onPointerDown={(event) => manipulateEmbedded(element.id, event, 'resize')} /></div>;
     }
     if (element.link === '!editor') {
-      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><EmbeddedEditor element={element} excalidrawAPI={canvasApi} workspace={workspace} onChooseWorkspace={chooseWorkspace} onCreateFile={createWorkspaceFile} onRefreshWorkspace={refreshWorkspace} onClose={() => closeEmbedded(element.id)} /></div>;
+      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><EmbeddedEditor element={element} excalidrawAPI={canvasApi} workspace={workspace} onChooseWorkspace={chooseWorkspace} onCreateFile={createWorkspaceFile} onRefreshWorkspace={refreshWorkspace} onClose={() => closeEmbedded(element.id)} onDragStart={(event) => manipulateEmbedded(element.id, event, 'move')} /><i className="window-resize-handle" onPointerDown={(event) => manipulateEmbedded(element.id, event, 'resize')} /></div>;
     }
     return null;
-  }, [canvasApi, chooseWorkspace, closeEmbedded, createWorkspaceFile, refreshWorkspace, workspace]);
+  }, [canvasApi, chooseWorkspace, closeEmbedded, createWorkspaceFile, manipulateEmbedded, refreshWorkspace, workspace]);
 
   return (
     <main className="canvas-app">
