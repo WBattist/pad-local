@@ -14,54 +14,21 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.56.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@tanstack/react-query':
-        specifier: ^5.74.3
-        version: 5.101.3(react@19.0.0)
-      '@tanstack/react-query-devtools':
-        specifier: ^5.74.3
-        version: 5.101.3(@tanstack/react-query@5.101.3(react@19.0.0))(react@19.0.0)
-      '@types/crypto-js':
-        specifier: ^4.2.2
-        version: 4.2.2
       '@xterm/addon-fit':
         specifier: ^0.10.0
         version: 0.10.0(@xterm/xterm@5.5.0)
       '@xterm/xterm':
         specifier: ^5.5.0
         version: 5.5.0
-      browser-fs-access:
-        specifier: 0.29.1
-        version: 0.29.1
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      crypto-js:
-        specifier: ^4.2.0
-        version: 4.2.0
-      lodash.isequal:
-        specifier: ^4.5.0
-        version: 4.5.0
-      lodash.throttle:
-        specifier: ^4.1.1
-        version: 4.1.1
       lucide-react:
         specifier: ^0.488.0
         version: 0.488.0(react@19.0.0)
-      posthog-js:
-        specifier: ^1.236.0
-        version: 1.405.2
       react:
         specifier: 19.0.0
         version: 19.0.0
       react-dom:
         specifier: 19.0.0
         version: 19.0.0(react@19.0.0)
-      react-use-websocket:
-        specifier: ^4.13.0
-        version: 4.13.0
-      zod:
-        specifier: ^3.24.4
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.14.0
@@ -371,12 +338,6 @@ packages:
   '@peculiar/webcrypto@1.7.1':
     resolution: {integrity: sha512-ODOov0sGMJMf3jPonOkgGqPknTsu+DdQ7kD++gz8aI+aFMOMHFbWAA2taqXXVTdP+OTOQR/znGvSpmkeI0WTYQ==}
     engines: {node: '>=14.18.0'}
-
-  '@posthog/core@1.44.0':
-    resolution: {integrity: sha512-uE+mdKvetxNQC6gWQf4MHIH8bGt+JN6z7ho0A4G3t9G1VGQTx9wHYHNwkKf3gzi+1oAXS9ej2VVY4pjWUU2PWg==}
-
-  '@posthog/types@1.397.1':
-    resolution: {integrity: sha512-W/LpWbKVaaUnfZKuFuHa+Dg03D+fC87cM+PQbG+59JcSPW8F0JcBtSoXmpfrqbpuxUToMo+gktutrUkAb/KQBw==}
 
   '@radix-ui/primitive@1.1.1':
     resolution: {integrity: sha512-SJ31y+Q/zAyShtXJc8x83i9TYdbAfHZ++tUZnvjJJqFjzsdUnKsxPL6IEtBlxKkU7yzer//GQtZSV4GbldL3YA==}
@@ -784,28 +745,8 @@ packages:
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
     engines: {node: '>=10'}
 
-  '@tanstack/query-core@5.101.3':
-    resolution: {integrity: sha512-pWLyu7AjFFVM5G+frjcL81kKEW9R8GCCPKnL3uaWbMwd2f3ZINFCuy+PtKkdz/+pKw/f/XMsFsYq/H+uJHM4GQ==}
-
-  '@tanstack/query-devtools@5.101.3':
-    resolution: {integrity: sha512-twEAOB5uBmpFAdlIuy3KIUujwmoZIhCXZpu1PFMTress2XvK/CyzsvV70WrhtTcocszKpbvwMR0Bxq4dqkvH0g==}
-
-  '@tanstack/react-query-devtools@5.101.3':
-    resolution: {integrity: sha512-Xr4gCymObeVmtImtsPDVzOlvy3Itr2ti3IrtdbcyhsmpsM54v2A7VR9hTB40C6wzCf3yM4Q2LqkFbNm1u8wd3A==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.101.3
-      react: ^18 || ^19
-
-  '@tanstack/react-query@5.101.3':
-    resolution: {integrity: sha512-ZjgcRwmQUSCythDPj6pE2NKFi9bpQegxIBxgt3hPytXI1ElFHNaa3A7aWW8vFaLCIRjPv467rbREYHbxcdgQbg==}
-    peerDependencies:
-      react: ^18 || ^19
-
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
-
-  '@types/crypto-js@4.2.2':
-    resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
 
   '@types/d3-scale-chromatic@3.1.0':
     resolution: {integrity: sha512-iWMJgwkK7yTRmWqRB5plb1kadXyQ5Sj8V/zYlFGMUBbIPKQScw+Dku9cAAMgJG+z5GYDoMjWGLVOvjghDEFnKQ==}
@@ -1045,10 +986,6 @@ packages:
     resolution: {integrity: sha512-6/bPho624p3S2pMyvP5kKBPXnI3ufHLObBFCfgx+LkeR5lg2XYy2hqZqUf45ypD8COn2bhgGJSUE+l5dhNBieA==}
     engines: {node: '>=6'}
 
-  clsx@2.1.1:
-    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
-    engines: {node: '>=6'}
-
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
@@ -1088,9 +1025,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  core-js@3.49.0:
-    resolution: {integrity: sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==}
-
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
@@ -1112,9 +1046,6 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
-
-  crypto-js@4.2.0:
-    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
@@ -1331,9 +1262,6 @@ packages:
   dompurify@3.1.6:
     resolution: {integrity: sha512-cTOAhc36AalkjtBpfG6O8JimdTMWNXjiePT2xQH/ppBGi/4uIpmj8eKyIkMJErXWARyINV/sB38yf8JCLF5pbQ==}
 
-  dompurify@3.4.12:
-    resolution: {integrity: sha512-zQvGet8Z2sWbQhCmfFz/T5QWH2oBmjnqK3qvOjaqaNLrLEF912WamU+ohnTp0TCep/MFVHpdJuCZEdFOdTnEFg==}
-
   dompurify@3.4.8:
     resolution: {integrity: sha512-yb1cEmaOum7wFvOCSQxyfgVlv5D47Rc30iZWoMpbDIWTnJ6grDDQyu2KFJzB2k7u0pMuJcQ1zphH//fFnw2tjQ==}
 
@@ -1454,9 +1382,6 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
-
-  fflate@0.4.9:
-    resolution: {integrity: sha512-zdxgIEddhfsyCaWpJ2SdXEP8ZMrKJ6+5jl4OupODcywU0IhRk6gdXuVGcPICyfx2H97hVK7xmJtRLPjkxAX8Vw==}
 
   filelist@1.0.6:
     resolution: {integrity: sha512-5giy2PkLYY1cP39p17Ech+2xlpTRL9HLspOfEgm0L6CwBXBTgsK5ou0JtzYuepxkaQ/tvhCFIJ5uXo0OrM2DxA==}
@@ -1763,10 +1688,6 @@ packages:
   lodash.debounce@4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
 
-  lodash.isequal@4.5.0:
-    resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
-    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
-
   lodash.throttle@4.1.1:
     resolution: {integrity: sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==}
 
@@ -2071,21 +1992,10 @@ packages:
     resolution: {integrity: sha512-lW616l85ucIQL+FocMmL7pQFPqBmwejrCMg+iPxyImlrANNJG9NHq/RkyCZopDhd8C3LA03PHRJDjkbGu8vvug==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-js@1.405.2:
-    resolution: {integrity: sha512-KPbbAX4EKM8UTU13gW/fZHyonfVee+GIj9QyiXtI2N4ooku69eZzfgk3CxQOUcnuvCz6xaQaUlvRmIsROxTCvw==}
-
   postject@1.0.0-alpha.6:
     resolution: {integrity: sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A==}
     engines: {node: '>=14.0.0'}
     hasBin: true
-
-  preact@10.29.7:
-    resolution: {integrity: sha512-DCHYrK/B10yUD3ZjLfhZ3WIE/9Vf9VFUODcRE2dRomTYDpJk6z6L9wecSfhfE6M9ZTHUdyQkoC46arIDhEV84Q==}
-    peerDependencies:
-      preact-render-to-string: '>=5'
-    peerDependenciesMeta:
-      preact-render-to-string:
-        optional: true
 
   proc-log@6.1.0:
     resolution: {integrity: sha512-iG+GYldRf2BQ0UDUAd6JQ/RwzaQy6mXmsk/IzlYyal4A4SNFw54MeH4/tLkF4I5WoWG9SQwuqWzS99jaFQHBuQ==}
@@ -2121,9 +2031,6 @@ packages:
 
   pwacompat@2.0.17:
     resolution: {integrity: sha512-6Du7IZdIy7cHiv7AhtDy4X2QRM8IAD5DII69mt5qWibC2d15ZU8DmBG1WdZKekG11cChSu4zkSUGPF9sweOl6w==}
-
-  query-selector-shadow-dom@1.0.1:
-    resolution: {integrity: sha512-lT5yCqEBgfoMYpf3F2xQRK7zEr1rhIIZuceDK6+xRkJQ4NMbHTwXqk4NkwDwQMNqXgG9r9fyHnzwNVs6zV5KRw==}
 
   quick-lru@5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
@@ -2163,9 +2070,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  react-use-websocket@4.13.0:
-    resolution: {integrity: sha512-anMuVoV//g2N76Wxqvqjjo1X48r9Np3y1/gMl7arX84tAPXdy5R7sB5lO5hvCzQRYjqXwV8XMAiEBOUbyrZFrw==}
 
   react@19.0.0:
     resolution: {integrity: sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ==}
@@ -2500,9 +2404,6 @@ packages:
     engines: {node: '>=12.0.0'}
     hasBin: true
 
-  web-vitals@5.3.0:
-    resolution: {integrity: sha512-q6LWsLatGYZp5VGBIOvbTj6JBV2nOmC8KvWztXBmwJcfFAzhwKwbOxhUH306XY3CcaZDUlSmSuNPBsCn0bFu+g==}
-
   web-worker@1.5.0:
     resolution: {integrity: sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw==}
 
@@ -2567,9 +2468,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
@@ -2894,12 +2792,6 @@ snapshots:
       tslib: 2.8.1
       webcrypto-core: 1.9.2
 
-  '@posthog/core@1.44.0':
-    dependencies:
-      '@posthog/types': 1.397.1
-
-  '@posthog/types@1.397.1': {}
-
   '@radix-ui/primitive@1.1.1': {}
 
   '@radix-ui/react-arrow@1.1.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
@@ -3213,29 +3105,12 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@tanstack/query-core@5.101.3': {}
-
-  '@tanstack/query-devtools@5.101.3': {}
-
-  '@tanstack/react-query-devtools@5.101.3(@tanstack/react-query@5.101.3(react@19.0.0))(react@19.0.0)':
-    dependencies:
-      '@tanstack/query-devtools': 5.101.3
-      '@tanstack/react-query': 5.101.3(react@19.0.0)
-      react: 19.0.0
-
-  '@tanstack/react-query@5.101.3(react@19.0.0)':
-    dependencies:
-      '@tanstack/query-core': 5.101.3
-      react: 19.0.0
-
   '@types/cacheable-request@6.0.3':
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
       '@types/node': 22.20.1
       '@types/responselike': 1.0.3
-
-  '@types/crypto-js@4.2.2': {}
 
   '@types/d3-scale-chromatic@3.1.0': {}
 
@@ -3531,8 +3406,6 @@ snapshots:
 
   clsx@1.1.1: {}
 
-  clsx@2.1.1: {}
-
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -3565,8 +3438,6 @@ snapshots:
       tree-kill: 1.2.2
       yargs: 17.7.2
 
-  core-js@3.49.0: {}
-
   core-util-is@1.0.3: {}
 
   cose-base@1.0.3:
@@ -3587,8 +3458,6 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
-
-  crypto-js@4.2.0: {}
 
   csstype@3.2.3: {}
 
@@ -3833,10 +3702,6 @@ snapshots:
 
   dompurify@3.1.6: {}
 
-  dompurify@3.4.12:
-    optionalDependencies:
-      '@types/trusted-types': 2.0.7
-
   dompurify@3.4.8:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
@@ -4006,8 +3871,6 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:
       picomatch: 4.0.5
-
-  fflate@0.4.9: {}
 
   filelist@1.0.6:
     dependencies:
@@ -4318,8 +4181,6 @@ snapshots:
   lodash-es@4.18.1: {}
 
   lodash.debounce@4.0.8: {}
-
-  lodash.isequal@4.5.0: {}
 
   lodash.throttle@4.1.1: {}
 
@@ -4702,25 +4563,10 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-js@1.405.2:
-    dependencies:
-      '@posthog/core': 1.44.0
-      '@posthog/types': 1.397.1
-      core-js: 3.49.0
-      dompurify: 3.4.12
-      fflate: 0.4.9
-      preact: 10.29.7
-      query-selector-shadow-dom: 1.0.1
-      web-vitals: 5.3.0
-    transitivePeerDependencies:
-      - preact-render-to-string
-
   postject@1.0.0-alpha.6:
     dependencies:
       commander: 9.5.0
     optional: true
-
-  preact@10.29.7: {}
 
   proc-log@6.1.0: {}
 
@@ -4753,8 +4599,6 @@ snapshots:
   pvutils@1.1.5: {}
 
   pwacompat@2.0.17: {}
-
-  query-selector-shadow-dom@1.0.1: {}
 
   quick-lru@5.1.1: {}
 
@@ -4789,8 +4633,6 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.2.17
-
-  react-use-websocket@4.13.0: {}
 
   react@19.0.0: {}
 
@@ -5123,8 +4965,6 @@ snapshots:
       - debug
       - supports-color
 
-  web-vitals@5.3.0: {}
-
   web-worker@1.5.0: {}
 
   webcrypto-core@1.9.2:
@@ -5193,8 +5033,6 @@ snapshots:
       fd-slicer: 1.1.0
 
   yocto-queue@0.1.0: {}
-
-  zod@3.25.76: {}
 
   zustand@4.5.7(@types/react@19.2.17)(react@19.0.0):
     dependencies:
