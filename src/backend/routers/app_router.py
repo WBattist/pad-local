@@ -4,6 +4,9 @@ import time
 
 from fastapi import APIRouter
 from config import STATIC_DIR
+from database.database import engine
+from cache import RedisClient
+from sqlalchemy import text
 
 app_router = APIRouter()
 
@@ -30,8 +33,17 @@ async def get_app_config():
     Return runtime configuration for the frontend
     """
     return {
-        "coderUrl": os.getenv("CODER_URL", ""),
+        "coderUrl": os.getenv("CODER_PUBLIC_URL", os.getenv("CODER_URL", "")),
         "posthogKey": os.getenv("VITE_PUBLIC_POSTHOG_KEY", ""),
         "posthogHost": os.getenv("VITE_PUBLIC_POSTHOG_HOST", ""),
         "devMode": os.getenv("PAD_DEV_MODE", "false") == "true",
     }
+
+@app_router.get("/health")
+async def health():
+    """Readiness check covering the two stateful dependencies Pad requires."""
+    async with engine.connect() as connection:
+        await connection.execute(text("SELECT 1"))
+    redis = await RedisClient.get_instance()
+    await redis.ping()
+    return {"status": "ok"}

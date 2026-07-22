@@ -88,7 +88,7 @@ class Session:
         Returns:
             The authentication URL
         """
-        auth_url = f"{self.oidc_config['server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/auth"
+        auth_url = f"{self.oidc_config['public_server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/auth"
         params = {
             'client_id': self.oidc_config['client_id'],
             'response_type': 'code',
@@ -104,7 +104,7 @@ class Session:
         Returns:
             The token endpoint URL
         """
-        return f"{self.oidc_config['server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/token"
+        return f"{self.oidc_config['internal_server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/token"
 
     def is_token_expired(self, token_data: Dict[str, Any], buffer_seconds: int = 30) -> bool:
         """
@@ -195,7 +195,7 @@ class Session:
             The JWKs client
         """
         if self._jwks_client is None:
-            jwks_url = f"{self.oidc_config['server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/certs"
+            jwks_url = f"{self.oidc_config['internal_server_url']}/realms/{self.oidc_config['realm']}/protocol/openid-connect/certs"
             self._jwks_client = PyJWKClient(jwks_url)
         return self._jwks_client
 
@@ -229,4 +229,4 @@ class Session:
             return False
         except Exception as e:
             print(f"Error tracking event {event_type} for session {session_id}: {str(e)}")
-            return False 
+            return False

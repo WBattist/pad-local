@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from database import init_db, engine
 from config import (
     STATIC_DIR, ASSETS_DIR, POSTHOG_API_KEY, POSTHOG_HOST, 
-    PAD_DEV_MODE, DEV_FRONTEND_URL
+    PAD_DEV_MODE, DEV_FRONTEND_URL, PAD_COOKIE_SECURE
 )
 from cache import RedisClient
 from dependencies import UserSession, optional_auth
@@ -103,7 +103,7 @@ async def serve_index_html(request: Request = None, response: Response = None, p
                         key="pending_pad_id",
                         value=str(pad_id),
                         httponly=True,
-                        secure=True,
+                        secure=PAD_COOKIE_SECURE,
                         samesite="lax"
                     )
                 
@@ -122,7 +122,7 @@ async def serve_index_html(request: Request = None, response: Response = None, p
                 key="pending_pad_id",
                 value=str(pad_id),
                 httponly=True,
-                secure=True,
+                secure=PAD_COOKIE_SECURE,
                 samesite="lax"
             )
         

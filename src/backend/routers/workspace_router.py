@@ -54,7 +54,7 @@ async def get_workspace_state(
         id=workspace_id,
         name=workspace_name,
         username=coder_username,
-        base_url=os.getenv("CODER_URL", ""),
+        base_url=os.getenv("CODER_PUBLIC_URL", os.getenv("CODER_URL", "")),
         agent="main"
     )
 

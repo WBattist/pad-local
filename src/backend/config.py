@@ -30,9 +30,13 @@ POSTHOG_HOST = os.getenv("VITE_PUBLIC_POSTHOG_HOST")
 # ===== OIDC Configuration =====
 OIDC_CLIENT_ID = os.getenv('OIDC_CLIENT_ID')
 OIDC_CLIENT_SECRET = os.getenv('OIDC_CLIENT_SECRET')
-OIDC_SERVER_URL = os.getenv('OIDC_SERVER_URL')
+OIDC_PUBLIC_SERVER_URL = os.getenv('OIDC_PUBLIC_SERVER_URL', os.getenv('OIDC_SERVER_URL'))
+OIDC_INTERNAL_SERVER_URL = os.getenv('OIDC_INTERNAL_SERVER_URL', OIDC_PUBLIC_SERVER_URL)
+# Compatibility alias for code that needs the browser-visible issuer URL.
+OIDC_SERVER_URL = OIDC_PUBLIC_SERVER_URL
 OIDC_REALM = os.getenv('OIDC_REALM')
 OIDC_REDIRECT_URI = os.getenv('REDIRECT_URI')
+PAD_COOKIE_SECURE = os.getenv('PAD_COOKIE_SECURE', 'false').lower() == 'true'
 
 default_pad = {}
 with open("templates/default.json", 'r') as f:
@@ -40,7 +44,8 @@ with open("templates/default.json", 'r') as f:
 
 # ===== Coder API Configuration =====
 CODER_API_KEY = os.getenv("CODER_API_KEY")
-CODER_URL = os.getenv("CODER_URL")
+CODER_URL = os.getenv("CODER_INTERNAL_URL", os.getenv("CODER_URL"))
+CODER_PUBLIC_URL = os.getenv("CODER_PUBLIC_URL", CODER_URL)
 CODER_TEMPLATE_ID = os.getenv("CODER_TEMPLATE_ID")
 CODER_DEFAULT_ORGANIZATION = os.getenv("CODER_DEFAULT_ORGANIZATION")
 CODER_WORKSPACE_NAME = os.getenv("CODER_WORKSPACE_NAME", "ubuntu")
@@ -52,7 +57,7 @@ def get_jwks_client():
     """Get or create a PyJWKClient for token verification"""
     global _jwks_client
     if _jwks_client is None:
-        jwks_url = f"{OIDC_SERVER_URL}/realms/{OIDC_REALM}/protocol/openid-connect/certs"
+        jwks_url = f"{OIDC_INTERNAL_SERVER_URL}/realms/{OIDC_REALM}/protocol/openid-connect/certs"
         _jwks_client = PyJWKClient(jwks_url)
     return _jwks_client
 

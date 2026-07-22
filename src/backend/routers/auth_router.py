@@ -7,7 +7,7 @@ import os
 from typing import Optional
 import time
 
-from config import (FRONTEND_URL, STATIC_DIR)
+from config import (FRONTEND_URL, STATIC_DIR, PAD_COOKIE_SECURE)
 from dependencies import get_coder_api, get_session_domain
 from coder import CoderAPI
 from dependencies import optional_auth, UserSession
@@ -37,7 +37,9 @@ async def login(
     auth_url = f"{auth_url}&state={state}"
 
     response = RedirectResponse(auth_url)
-    response.set_cookie('session_id', session_id)
+    response.set_cookie(
+        'session_id', session_id, httponly=True, secure=PAD_COOKIE_SECURE, samesite='lax'
+    )
 
     return response
 
@@ -130,7 +132,7 @@ async def logout(request: Request, session_domain: Session = Depends(get_session
         print(f"Warning: Failed to delete session {session_id}")
     
     # Create the Keycloak logout URL with redirect back to our app
-    logout_url = f"{session_domain.oidc_config['server_url']}/realms/{session_domain.oidc_config['realm']}/protocol/openid-connect/logout"
+    logout_url = f"{session_domain.oidc_config['public_server_url']}/realms/{session_domain.oidc_config['realm']}/protocol/openid-connect/logout"
     full_logout_url = f"{logout_url}?id_token_hint={id_token}&post_logout_redirect_uri={FRONTEND_URL}"
     
     # Create a response with the logout URL and clear the session cookie
@@ -138,7 +140,7 @@ async def logout(request: Request, session_domain: Session = Depends(get_session
     response.delete_cookie(
         key="session_id",
         path="/",
-        secure=True,
+        secure=PAD_COOKIE_SECURE,
         httponly=True,
         samesite="lax"
     )

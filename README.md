@@ -1,159 +1,214 @@
-# pad.ws -  whiteboard as an IDE 🎨
+# Pad Local — a whiteboard IDE on your Windows PC
 
+Pad Local keeps [Pad](https://pad.ws) as a browser-based website while running its complete
+stack locally through Docker Desktop. It combines an Excalidraw canvas with persistent browser
+terminals, code-server/VS Code access, and Coder-managed development workspaces.
 
+## Install on Windows
 
-[![Pad.ws Canvas IDE](docs/canvas_ide.png)](https://pad.ws)
+```powershell
+irm https://raw.githubusercontent.com/WBattist/pad-local/main/install.ps1 | iex
+pad
+```
 
-[pad.ws](https://pad.ws) is a whiteboard app that acts as a dev environment in your browser
+The `pad` command starts the local services and opens Pad as a website at
+http://localhost:8000. Keep the terminal open while using Pad. Press Ctrl+C
+to stop the local session. Your projects and data will remain saved.
 
-## ✨ Features
+The equivalent long-form installation command is:
 
-* 🎨 **Interactive Whiteboard** - Draw, sketch and visualize your ideas with Excalidraw
-* 💻 **Fully fledged IDE** - Access terminals and VS Code directly within the whiteboard
-* ☁️ **Browser friendly** - Access your dev env from any device
-* 🔄 **Seamless Workflow** - Switch between visual ideation and coding
-* 🛠️ **Use your own tools** - Access your VM from your desktop client (VS Code & Cursor supported)
+```powershell
+Invoke-RestMethod https://raw.githubusercontent.com/WBattist/pad-local/main/install.ps1 | Invoke-Expression
+```
 
-This uses [Excalidraw](https://github.com/excalidraw/excalidraw) for the whiteboard interface while [Coder](https://github.com/coder/coder) powers the cloud development environments.
+The installer downloads the repository itself, so Git is optional. It generates credentials,
+imports Keycloak configuration, creates the Coder administrator and API token, discovers the
+organization, uploads the workspace template, builds Pad, verifies every service, and stops the
+test stack without deleting volumes. Re-running the installer repairs or updates application
+files without replacing generated configuration or persistent data.
 
+## Requirements
 
-## Try it online  🌐
+- Windows 11 or Windows 10, x64 or ARM64 where every selected container image supports it.
+- Docker Desktop using its WSL2-backed Linux container engine.
+- PowerShell 7 or Windows PowerShell 5.1.
+- At least 4 GB free memory and 10 GB free disk space; active workspaces may need more.
+- Permission for Docker Desktop to use the drive containing `%LOCALAPPDATA%`.
 
-Visit [pad.ws](https://pad.ws) for an official managed instance. During this beta, we offer free ubuntu dev environments without any setup
+Administrator privileges are not required for normal installation or use. If Docker Desktop is
+installed but stopped, Pad starts it and waits for the daemon. If it is missing, Pad asks you to
+install Docker Desktop with WSL2 rather than installing large system software silently.
 
-## Self-Hosting 🛠️
+## Normal use
 
-⚠️ IMPORTANT NOTICE: This repository is in early development stage. The setup provided in `docker-compose.yml` is for development and testing purposes only.
-This simplified example lets you host pad on `localhost` but is not safe for real-life use without further configurations ⚠️
+Run `pad` with no arguments for the default attached session. It starts and bootstraps the stack,
+opens the browser, and remains attached to the terminal. Ctrl+C or normal terminal exit stops the
+Compose services owned by that session. A watchdog performs the same cleanup if the terminal
+process exits unexpectedly. Named volumes and Coder workspace volumes are never removed during
+normal shutdown.
 
+The initial Keycloak username is `pad`. Display its generated local password with:
 
+```powershell
+pad credentials
+```
 
+Use `PAD_NO_BROWSER=1` when the browser should not open automatically:
 
-### ✅ Prerequisites
-*   **Linux Host** (This was tested on Ubuntu only)
-*   **Docker & Docker Compose:** Ensure you have both installed. [Install Docker](https://docs.docker.com/get-docker/) / [Install Docker Compose](https://docs.docker.com/compose/install/)
+```powershell
+$env:PAD_NO_BROWSER = "1"
+pad
+```
 
+### Attached and detached modes
 
-### 1️⃣ .env
+```powershell
+pad             # attached; stop owned services when this terminal exits
+pad start       # detached; keep services running after the terminal closes
+pad stop        # stop the Pad Compose project, preserve every volume
+pad restart     # stop and start, preserving data
+pad open        # open the website without changing service state
+pad status      # show mode, ownership, URLs, containers, and health
+```
 
-*  Copy and review the default values
-    ```bash
-    cp .env.template .env
-    ```
+An attached command never claims or stops a stack that was already running in detached mode. A
+session file containing the PID and a random session ID prevents two attached processes from
+managing the same stack; stale locks are removed automatically.
 
-### 2️⃣ PostgreSQL 🐘
-> Ensure persistence for the whole deployment (canvases and configs)
+### Logs and diagnostics
 
-*   Run the PostgreSQL container using the provided configuration (e.g., in your `docker-compose.yml`)
+```powershell
+pad logs
+pad logs app
+pad logs coder
+pad logs keycloak
+pad logs postgres
+pad logs redis
+pad doctor
+```
 
-    ```bash
-    docker compose up -d postgres 
-    ```
+`pad doctor` checks Windows, PowerShell, Docker Desktop, its Linux engine, Compose, WSL2, free
+space, ports, generated files, container state, PostgreSQL, Redis, Keycloak discovery, Coder, the
+Pad backend, and the website. Its failures include Windows-specific corrective guidance.
 
-### 3️⃣ Redis 🔄
-> In-memory data store for caching and session management with password authentication
+### Updates
 
-*   Run the Redis container with password authentication
-    ```bash
-    docker compose up -d redis
-    ```
-*   The Redis password is configured in your `.env` file using the `REDIS_PASSWORD` variable
+```powershell
+pad update
+```
 
-### 4️⃣ Keycloak 🔑
-> OIDC provider for access and user management (within coder and pad app)
-*   Run the Keycloak container
-    ```bash
-    docker compose up -d keycloak 
-    ```
-*   Access the Keycloak admin console http://localhost:8080
-*   **Create a Realm:** Name it appropriately (e.g., `pad-ws`)
-*   **Create a Client:**
-    *   Give it a `Client ID` (e.g., `pad-ws-client`)
-    *   Enable **Client Authentication**
-    *   Add * to the valid redirect urls
-    *   You can leave other settings as default for now
-*   **Get Credentials:**
-    *   Navigate to `Clients` -> `[Your Client ID]` -> `Credentials` tab
-    *   Note the **Client secret**.
-    *   Update your environment variables file (`.env`) with:
-        ```dotenv
-        OIDC_REALM=your_oidc_realm
-        OIDC_CLIENT_ID=your_client_id 
-        OIDC_CLIENT_SECRET=your_client_secret 
-        ```
-*   **Create a User:**
-    *   Navigate to `Users` -> `Create user`
-    *   Fill in the details
-    *   **Important:** Tick `Email verified`
-    *   Go to the `Credentials` tab for the new user and set a password
-*   **Create an Audience:**
-    *   Navigate to `Clients` -> `[Your Client ID]` -> `Client Scopes`
-    *   Click on the dedicated scope of your Client (`[clientid]-dedicated`)
-    *   Click on `Configure a new mapper`
-    *   Then click on `Audience`
-    *   Ensure `Included Client Audience` matches your `Client ID`
-    *   Ensure `Add to access token` is On
-    
-### 5️⃣ Coder 🧑‍💻
+Update downloads `WBattist/pad-local` (or the configured repository/branch), retains generated
+configuration and Docker volumes, rebuilds changed images, and restores the previous running
+mode. The installer and update workflow are repeat-safe after interruptions.
 
-*   **Find Docker Group ID:** You'll need this to grant necessary permissions
-    ```bash
-    getent group docker | cut -d: -f3 
-    ```
-*   Update your `.env` file with the `DOCKER_GROUP_ID`:
-    ```dotenv
-    DOCKER_GROUP_ID=your_docker_group_id 
-    ```
-*   Run the Coder container.
-    ```bash
-    docker compose up -d coder
-    ```
-*   **Access Coder UI:** Open [localhost:7080](http://localhost:7080) in your browser
-*   **First Login:** Create an administrator user (e.g., `admin`)
-*   **Create a Template:**
-    *   Use the "Start from template" option.
-    *   Choose a base image (e.g., `docker-containers` or a simple Ubuntu). Configure it as needed
-*   **Generate API Key:**
-    *   Click your profile picture (top right) -> `Account` -> `API Keys`
-    *   Generate a new token
-    *   Update your `.env`
-        ```dotenv
-        CODER_API_KEY=your_coder_api_key 
-        ```
-*   **Get Template ID:**
-    *   Visit `http://localhost:7080/api/v2/templates` in your browser (or use `curl`)
-    *   Find the `id` of the template you created
-    *   Update your `.env`
-        ```dotenv
-        CODER_TEMPLATE_ID=your_coder_template_id # Example: 85fb21ba-085b-47a6-9f4d-94ea979aaba9
-        ```
-*   **Get Default Organization ID:**
-    *   Visit `http://localhost:7080/api/v2/organizations` in your browser (or use `curl`)
-    *   Find the `id` of your organization (usually the default one)
-    *   Update your `.env`:
-        ```dotenv
-        CODER_DEFAULT_ORGANIZATION=your_organization_id # Example: 70f6af06-ef3a-4b4c-a663-c03c9ee423bb
-        ```
-*   **If you use a custom name for your workspace:**
-    *   You need to provide the name as `CODER_WORKSPACE_NAME` in your `.env`. Otherwise, it will assume your workspace name is the default we chose: `ubuntu`.
+### Reset and uninstall
 
-### 6️⃣ Pad App 📝
-> The fastAPI app that both serves the build frontend and the backend API to interface with Coder
+```powershell
+pad reset             # requires typing DELETE
+pad reset --yes       # deletes Pad Local databases and labeled workspace volumes
+pad uninstall         # removes launchers; preserves Docker volumes and configuration
+pad uninstall --purge # deletes local data before uninstalling
+```
 
-*   **Run the Application:**
-    *   Ensure all environment variables in your `.env` file are correctly set
-    *   Run the `pad` application container
+Reset and purge are the only normal commands that remove persistent volumes. Plain stop,
+attached-session cleanup, update, reinstall, and plain uninstall never use `down --volumes`.
 
-        ```bash
-        docker compose up -d pad 
-        ```
+## Data and installation locations
 
-🎉 **Congratulations!**  You should now be able to access and login to your self-hosted pad at [localhost:8000](http://localhost:8000) 
+| Purpose | Windows path |
+| --- | --- |
+| Application | `%LOCALAPPDATA%\PadLocal` |
+| Generated configuration | `%LOCALAPPDATA%\PadLocal\config` |
+| CLI/session state | `%LOCALAPPDATA%\PadLocal\state` |
+| Logs | `%LOCALAPPDATA%\PadLocal\logs` |
+| `pad` launcher | `%LOCALAPPDATA%\Programs\PadLocal\bin` |
 
-🚧 *Did you have any issue while following this guide?*
+Canvas/user data, Keycloak data, and Coder state live in named Docker volumes. Each development
+workspace has a labeled Docker volume for `/home/coder`, so files remain after its container and
+the Pad stack stop. Generated secrets are stored in `config\runtime.env`; the installer restricts
+its Windows ACL to the current user when feasible. Do not publish or commit that file.
 
-*Please [let us know](https://github.com/pad-ws/pad.ws/issues) so we can improve the onboarding flow*
+## Ports
 
-## 🚀 Project Growth
+Only browser-facing ports are published, and all bind to `127.0.0.1`:
 
-[![Star History Chart](https://api.star-history.com/svg?repos=pad-ws/pad.ws&type=Date)](https://star-history.com/#pad-ws/pad.ws&Date)
+| Service | Default URL |
+| --- | --- |
+| Pad website | http://localhost:8000 |
+| Coder | http://localhost:7080 |
+| Keycloak | http://localhost:8080 |
+
+PostgreSQL and Redis are not exposed to Windows. Change a conflicting port persistently with:
+
+```powershell
+pad config set app.port 8001
+pad config set coder.port 7081
+pad config set keycloak.port 8081
+```
+
+For one process, use `PAD_APP_PORT`, `PAD_CODER_PORT`, or `PAD_KEYCLOAK_PORT`. Pad reports the
+owning process when a required port is occupied and never kills unrelated processes.
+
+## How local authentication and workspaces work
+
+The browser uses `localhost` URLs, while containers use Compose DNS names such as `postgres`,
+`redis`, `keycloak`, `coder`, and `app`. Pad has separate public and internal OIDC endpoints, so
+authorization redirects remain browser-reachable while token and JWKS requests stay on the Docker
+network. Keycloak imports a generated realm with exact Pad and Coder callbacks, origins, scopes,
+roles, an audience mapper, and the initial local user.
+
+Coder runs against its own PostgreSQL database. Bootstrap uses Coder's CLI to create the first
+administrator and automation token, find the default organization, push `coder-template`, and
+store discovered IDs. The template creates a Linux workspace with persistent home storage,
+browser terminal, code-server, and desktop VS Code/Cursor connection support.
+
+## Security notes
+
+Pad Local is intended for one trusted user on one Windows machine. HTTP is acceptable only because
+all published services bind to loopback. Do not change them to `0.0.0.0` without adding TLS,
+hardening identity configuration, and reviewing Coder's deployment guidance.
+
+Coder must create and manage workspace containers. Pad routes that access through a Docker socket
+proxy instead of giving the Coder container a host Docker group ID. The proxy is not published to
+Windows, but its allowed Docker API can still create privileged resources; anyone who controls
+Coder templates or the Pad Docker network may effectively control Docker Desktop's Linux VM. Only
+install trusted templates and repository updates. Keycloak/Coder use a local-development issuer
+workaround because the browser sees `localhost` while containers use an internal backchannel; it
+must not be reused for a network-accessible deployment.
+
+## Troubleshooting
+
+- **`pad` is not recognized:** open a new terminal. The installer updates the current process and
+  the user `PATH`, but already-open sibling terminals do not inherit the new value.
+- **Docker daemon unavailable:** open Docker Desktop, wait for “Engine running,” confirm Linux
+  containers are selected, then run `pad doctor`.
+- **WSL error:** run `wsl --status`; install/update WSL from an elevated terminal, restart Windows,
+  and re-enable Docker Desktop's WSL2 engine.
+- **Port occupied:** use `pad doctor`, stop the reported program yourself, or configure another
+  port. Pad never terminates it.
+- **A service is unhealthy:** run `pad status`, then `pad logs <service>`. Re-running `pad` resumes
+  incomplete Keycloak/Coder bootstrap.
+- **Browser did not open:** run `pad open` or visit http://localhost:8000.
+
+## Linux (secondary)
+
+PowerShell and Docker Engine are required for the same management CLI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WBattist/pad-local/main/install.sh | bash
+pad
+```
+
+Windows PowerShell remains the primary installation and management experience.
+
+## Development and testing
+
+```powershell
+Invoke-Pester -Path tests -Output Detailed
+pwsh -File scripts/smoke-test.ps1
+```
+
+CI validates PowerShell parsing/unit behavior, analyzes PowerShell errors, and renders the Compose
+model. A real Docker Desktop integration and browser checklist is in
+`tests/integration/README.md` because hosted Windows runners cannot provide a supported nested
+Docker Desktop Linux engine.

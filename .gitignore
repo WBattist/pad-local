@@ -7,3 +7,9 @@ src/excalidraw
 src/frontend/.env.local
 .vscode/settings.json
 dev/
+config/runtime.env
+config/runtime/
+state/
+logs/
+*.local.env
+.pester/

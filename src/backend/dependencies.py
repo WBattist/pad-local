@@ -16,7 +16,11 @@ from database.database import get_session
 
 # oidc_config for session creation and user sessions
 oidc_config = {
-    'server_url': os.getenv('OIDC_SERVER_URL'),
+    'public_server_url': os.getenv('OIDC_PUBLIC_SERVER_URL', os.getenv('OIDC_SERVER_URL')),
+    'internal_server_url': os.getenv(
+        'OIDC_INTERNAL_SERVER_URL',
+        os.getenv('OIDC_PUBLIC_SERVER_URL', os.getenv('OIDC_SERVER_URL'))
+    ),
     'realm': os.getenv('OIDC_REALM'),
     'client_id': os.getenv('OIDC_CLIENT_ID'),
     'client_secret': os.getenv('OIDC_CLIENT_SECRET'),
