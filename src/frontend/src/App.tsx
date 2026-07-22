@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Excalidraw } from '@atyrode/excalidraw';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
 import type { ExcalidrawElement } from '@atyrode/excalidraw/element/types';
-import { ChevronRight, File, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2 } from 'lucide-react';
+import { ChevronRight, Download, File, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2, Upload } from 'lucide-react';
 import { desktopApi } from './desktopApi';
 import { FileEditor } from './FileEditor';
 import { TerminalPane } from './TerminalPane';
@@ -23,6 +23,7 @@ export default function App() {
   const [terminalOpen, setTerminalOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const saveTimer = useRef<number | undefined>(undefined);
   const latestScene = useRef<LocalScene | null>(null);
   const currentPadId = useRef('');
@@ -30,12 +31,18 @@ export default function App() {
 
   const activePad = useMemo(() => pads.find((pad) => pad.id === activePadId), [pads, activePadId]);
 
-  const loadPad = useCallback(async (id: string) => {
-    if (!id || id === currentPadId.current) return;
+  const flushCurrentPad = useCallback(async () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = undefined;
     if (currentPadId.current && latestScene.current) {
       await desktopApi.savePad(currentPadId.current, latestScene.current);
     }
+    setSaving(false);
+  }, []);
+
+  const loadPad = useCallback(async (id: string) => {
+    if (!id || id === currentPadId.current) return;
+    await flushCurrentPad();
     setScene(null);
     setSelectedFile('');
     await desktopApi.activatePad(id);
@@ -45,7 +52,7 @@ export default function App() {
     setActivePadId(id);
     setScene(loaded);
     setSaving(false);
-  }, []);
+  }, [flushCurrentPad]);
 
   useEffect(() => {
     Promise.all([
@@ -127,10 +134,31 @@ export default function App() {
     if (result) setWorkspace(result);
   };
 
+  const exportBackup = async () => {
+    if (!desktopApi.backup) return;
+    try {
+      await flushCurrentPad();
+      const destination = await desktopApi.backup.export();
+      if (destination) setNotice(`Backup saved to ${destination}`);
+    } catch (cause: any) { setError(cause.message); }
+  };
+
+  const importBackup = async () => {
+    if (!desktopApi.backup) return;
+    try {
+      await flushCurrentPad();
+      const imported = await desktopApi.backup.import();
+      if (!imported) return;
+      setPads(imported.pads);
+      await loadPad(imported.activePadId);
+      setNotice('Backup imported. Existing pads were kept.');
+    } catch (cause: any) { setError(cause.message); }
+  };
+
   return (
     <main className="desktop-shell">
       <header className="app-header">
-        <div className="brand-mark">P</div>
+        <img className="brand-mark" src="./assets/images/app-icon.png" alt="" />
         <div className="brand-copy"><strong>Pad Local</strong><span>Local workspace</span></div>
         <div className="active-title">{activePad?.title || 'Loading…'}</div>
         <div className={`save-state ${saving ? 'saving' : ''}`}>{saving ? 'Saving…' : 'Saved locally'}</div>
@@ -181,7 +209,13 @@ export default function App() {
           </div>
         </section>
 
-        <footer>{desktopApi.isDesktop ? 'Offline · no account' : 'Browser preview · desktop APIs disabled'}</footer>
+        <footer>
+          <div className="backup-actions">
+            <button onClick={importBackup} disabled={!desktopApi.backup} title="Import backup"><Upload size={13} /> Import</button>
+            <button onClick={exportBackup} disabled={!desktopApi.backup} title="Export backup"><Download size={13} /> Export</button>
+          </div>
+          <span>{desktopApi.isDesktop ? 'Offline · no account' : 'Browser preview · desktop APIs disabled'}</span>
+        </footer>
       </aside>
 
       <section className={`main-workspace ${terminalOpen ? 'with-terminal' : ''} ${selectedFile ? 'with-editor' : ''}`}>
@@ -202,6 +236,7 @@ export default function App() {
       </section>
 
       {error && <button className="error-toast" onClick={() => setError('')}>{error}</button>}
+      {notice && <button className="notice-toast" onClick={() => setNotice('')}>{notice}</button>}
     </main>
   );
 }

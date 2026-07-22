@@ -121,6 +121,67 @@ function listWorkspaceFiles(root, limit = 2500) {
 
 function registerIpc() {
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataPath: dataRoot, platform: process.platform }));
+  ipcMain.handle('backup:export', async () => {
+    const state = readState();
+    const backup = {
+      format: 'pad-local-backup',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      pads: state.pads.map((pad) => ({
+        ...pad,
+        scene: JSON.parse(fs.readFileSync(path.join(padsRoot, `${safePadId(pad.id)}.json`), 'utf8')),
+      })),
+    };
+    const date = new Date().toISOString().slice(0, 10);
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Pad Local backup',
+      defaultPath: path.join(app.getPath('documents'), `Pad-Local-Backup-${date}.json`),
+      filters: [{ name: 'Pad Local backup', extensions: ['json'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    writeJson(result.filePath, backup);
+    return result.filePath;
+  });
+  ipcMain.handle('backup:import', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Pad Local backup',
+      properties: ['openFile'],
+      filters: [{ name: 'Pad Local backup', extensions: ['json'] }],
+    });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const source = result.filePaths[0];
+    if (fs.statSync(source).size > 100 * 1024 * 1024) throw new Error('Backups larger than 100 MB cannot be imported.');
+    const backup = JSON.parse(fs.readFileSync(source, 'utf8'));
+    if (backup?.format !== 'pad-local-backup' || backup.version !== 1 || !Array.isArray(backup.pads) || !backup.pads.length) {
+      throw new Error('This is not a valid Pad Local backup.');
+    }
+    const state = readState();
+    const createdIds = [];
+    const importedPads = [];
+    try {
+      for (const item of backup.pads) {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const pad = {
+          id,
+          title: String(item?.title || 'Imported Pad').trim().slice(0, 80) || 'Imported Pad',
+          createdAt: now,
+          updatedAt: now,
+        };
+        const scene = item?.scene && Array.isArray(item.scene.elements) ? item.scene : defaultScene();
+        writeJson(path.join(padsRoot, `${id}.json`), scene);
+        createdIds.push(id);
+        importedPads.push(pad);
+      }
+      state.pads.push(...importedPads);
+      state.activePadId = importedPads[0].id;
+      saveState(state);
+    } catch (error) {
+      for (const id of createdIds) fs.rmSync(path.join(padsRoot, `${id}.json`), { force: true });
+      throw error;
+    }
+    return { pads: state.pads, activePadId: state.activePadId };
+  });
   ipcMain.handle('pads:list', () => {
     const state = readState();
     return { pads: state.pads, activePadId: state.activePadId };

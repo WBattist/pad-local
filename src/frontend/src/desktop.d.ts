@@ -4,6 +4,10 @@ declare global {
   interface Window {
     padDesktop?: {
       info(): Promise<{ version: string; dataPath: string; platform: string }>;
+      backup: {
+        export(): Promise<string | null>;
+        import(): Promise<{ pads: LocalPad[]; activePadId: string } | null>;
+      };
       pads: {
         list(): Promise<{ pads: LocalPad[]; activePadId: string }>;
         load(id: string): Promise<LocalScene>;

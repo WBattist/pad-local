@@ -2,6 +2,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('padDesktop', {
   info: () => ipcRenderer.invoke('app:info'),
+  backup: {
+    export: () => ipcRenderer.invoke('backup:export'),
+    import: () => ipcRenderer.invoke('backup:import'),
+  },
   pads: {
     list: () => ipcRenderer.invoke('pads:list'),
     load: (id) => ipcRenderer.invoke('pads:load', id),

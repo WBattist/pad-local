@@ -82,4 +82,5 @@ export const desktopApi = {
   },
   workspace: window.padDesktop?.workspace,
   terminal: window.padDesktop?.terminal,
+  backup: window.padDesktop?.backup,
 };
