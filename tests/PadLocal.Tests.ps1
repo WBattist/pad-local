@@ -70,6 +70,14 @@ Describe "Compose architecture" {
         $script:Compose | Should -Match 'condition: service_completed_successfully'
         $script:Compose | Should -Not -Match 'docker-entrypoint-initdb\.d/10-pad-local-databases\.sh'
     }
+
+    It "passes Compose detach flags through PowerShell parameter binding" {
+        $common = Get-Content -Raw $script:CommonPath
+        $doctor = Get-Content -Raw (Join-Path $script:RepositoryRoot "scripts\doctor.ps1")
+        $common | Should -Match 'Invoke-PadCompose up --detach'
+        $common | Should -Not -Match 'Invoke-PadCompose up -d'
+        $doctor | Should -Not -Match 'Invoke-PadCompose.* -d '
+    }
 }
 
 Describe "Installer contract" {

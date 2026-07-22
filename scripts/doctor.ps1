@@ -80,7 +80,7 @@ if (-not (Test-PadStackRunning)) {
 
 if ($dockerAvailable -and (Test-PadStackRunning)) {
     try { Invoke-PadCompose ps; Write-Check "Containers" "PASS" "Compose project pad-local is running." } catch { Write-Check "Containers" "FAIL" $_.Exception.Message }
-    try { Invoke-PadCompose exec -T postgres pg_isready -U ([string]$environment.POSTGRES_USER) -d ([string]$environment.POSTGRES_DB) | Out-Null; Write-Check "PostgreSQL" "PASS" "accepting connections" } catch { Write-Check "PostgreSQL" "FAIL" $_.Exception.Message }
+    try { Invoke-PadCompose exec -T postgres pg_isready -U ([string]$environment.POSTGRES_USER) --dbname ([string]$environment.POSTGRES_DB) | Out-Null; Write-Check "PostgreSQL" "PASS" "accepting connections" } catch { Write-Check "PostgreSQL" "FAIL" $_.Exception.Message }
     try { Invoke-PadCompose exec -T redis redis-cli -a ([string]$environment.REDIS_PASSWORD) ping | Out-Null; Write-Check "Redis" "PASS" "PONG" } catch { Write-Check "Redis" "FAIL" $_.Exception.Message }
     foreach ($endpoint in @(
         @{ Name = "Keycloak OIDC"; Url = "http://localhost:$($environment.KEYCLOAK_PORT)/realms/$($environment.OIDC_REALM)/.well-known/openid-configuration" },

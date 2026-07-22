@@ -426,7 +426,7 @@ function Start-PadServices {
     Initialize-PadConfiguration | Out-Null
     Assert-PadPorts
     Write-PadMessage "Starting databases, Keycloak, and Coder..."
-    Invoke-PadCompose up -d postgres redis docker-proxy keycloak coder | Out-Null
+    Invoke-PadCompose up --detach postgres redis docker-proxy keycloak coder | Out-Null
     $environment = Get-PadEnvironment
     Wait-PadUrl -Url "http://localhost:$($environment.KEYCLOAK_PORT)/realms/$($environment.OIDC_REALM)/.well-known/openid-configuration" -TimeoutSeconds 360 | Out-Null
     Wait-PadUrl -Url "http://localhost:$($environment.CODER_PORT)/api/v2/buildinfo" -TimeoutSeconds 360 | Out-Null
