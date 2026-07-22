@@ -25,7 +25,7 @@ if (existsSync(platformPrebuild)) {
   cpSync(platformPrebuild, join(ptyDestination, "prebuilds", `${process.platform}-${process.arch}`), { recursive: true, dereference: true });
 }
 
-const napiSource = dirname(require.resolve("node-addon-api/package.json"));
+const napiSource = join(ptySource, "..", "node-addon-api");
 const napiDestination = join(frontendRoot, "desktop-app", "node_modules", "node-addon-api");
 rmSync(napiDestination, { recursive: true, force: true });
-cpSync(napiSource, napiDestination, { recursive: true, dereference: true });
+if (existsSync(napiSource)) cpSync(napiSource, napiDestination, { recursive: true, dereference: true });
