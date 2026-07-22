@@ -5,9 +5,8 @@ import '@xterm/xterm/css/xterm.css';
 
 export function TerminalPane({ workspacePath }: { workspacePath: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<Terminal>();
   const processIdRef = useRef('');
-  const [status, setStatus] = useState('Starting PowerShell…');
+  const [status, setStatus] = useState('Starting terminal…');
 
   useEffect(() => {
     const api = window.padDesktop?.terminal;
@@ -27,7 +26,6 @@ export function TerminalPane({ workspacePath }: { workspacePath: string }) {
     terminal.loadAddon(fit);
     terminal.open(host);
     fit.fit();
-    terminalRef.current = terminal;
     let disposed = false;
     const removeDataListener = api.onData(({ id, data }) => {
       if (id === processIdRef.current) terminal.write(data);

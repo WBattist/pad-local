@@ -68,7 +68,7 @@ export const desktopApi = {
     const state = browserState();
     if (state.pads.length <= 1) throw new Error('Keep at least one pad.');
     state.pads = state.pads.filter((item) => item.id !== id);
-    state.activePadId = state.pads[0].id;
+    if (state.activePadId === id) state.activePadId = state.pads[0].id;
     saveBrowserState(state);
     localStorage.removeItem(`${STATE_KEY}:scene:${id}`);
     return state.activePadId;

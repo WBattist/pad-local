@@ -25,18 +25,26 @@ export default function App() {
   const [error, setError] = useState('');
   const saveTimer = useRef<number | undefined>(undefined);
   const latestScene = useRef<LocalScene | null>(null);
+  const currentPadId = useRef('');
   const excalidrawApi = useRef<ExcalidrawImperativeAPI | null>(null);
 
   const activePad = useMemo(() => pads.find((pad) => pad.id === activePadId), [pads, activePadId]);
 
   const loadPad = useCallback(async (id: string) => {
+    if (!id || id === currentPadId.current) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    if (currentPadId.current && latestScene.current) {
+      await desktopApi.savePad(currentPadId.current, latestScene.current);
+    }
     setScene(null);
     setSelectedFile('');
     await desktopApi.activatePad(id);
     const loaded = await desktopApi.loadPad(id);
+    currentPadId.current = id;
     latestScene.current = loaded;
     setActivePadId(id);
     setScene(loaded);
+    setSaving(false);
   }, []);
 
   useEffect(() => {
@@ -52,20 +60,28 @@ export default function App() {
 
   useEffect(() => () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    if (activePadId && latestScene.current) void desktopApi.savePad(activePadId, latestScene.current);
-  }, [activePadId]);
+    if (currentPadId.current && latestScene.current) {
+      void desktopApi.savePad(currentPadId.current, latestScene.current);
+    }
+  }, []);
 
   const saveCanvas = useCallback((elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
-    if (!activePadId) return;
+    const padId = currentPadId.current;
+    if (!padId) return;
     const next = cleanScene(elements, appState, files);
     latestScene.current = next;
     setSaving(true);
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(async () => {
-      await desktopApi.savePad(activePadId, next);
-      setSaving(false);
+      try {
+        await desktopApi.savePad(padId, next);
+        if (currentPadId.current === padId) setSaving(false);
+      } catch (cause: any) {
+        setSaving(false);
+        setError(cause.message);
+      }
     }, 700);
-  }, [activePadId]);
+  }, []);
 
   const createPad = async () => {
     try {
@@ -78,13 +94,20 @@ export default function App() {
   const renamePad = async (pad: LocalPad) => {
     const title = window.prompt('Rename pad', pad.title)?.trim();
     if (!title || title === pad.title) return;
-    const updated = await desktopApi.renamePad(pad.id, title);
-    setPads((current) => current.map((item) => item.id === pad.id ? updated : item));
+    try {
+      const updated = await desktopApi.renamePad(pad.id, title);
+      setPads((current) => current.map((item) => item.id === pad.id ? updated : item));
+    } catch (cause: any) { setError(cause.message); }
   };
 
   const deletePad = async (pad: LocalPad) => {
     if (!window.confirm(`Delete “${pad.title}”? This cannot be undone.`)) return;
     try {
+      if (pad.id === currentPadId.current) {
+        if (saveTimer.current) window.clearTimeout(saveTimer.current);
+        currentPadId.current = '';
+        latestScene.current = null;
+      }
       const nextId = await desktopApi.deletePad(pad.id);
       setPads((current) => current.filter((item) => item.id !== pad.id));
       if (pad.id === activePadId) await loadPad(nextId);

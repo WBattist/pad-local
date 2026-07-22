@@ -16,20 +16,53 @@ const defaultScene = () => ({
   files: {},
 });
 
+function rebuiltState() {
+  const now = new Date().toISOString();
+  const recoveredPads = fs.readdirSync(padsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /^[a-zA-Z0-9-]{8,64}\.json$/.test(entry.name))
+    .map((entry, index) => {
+      const id = entry.name.slice(0, -5);
+      const stats = fs.statSync(path.join(padsRoot, entry.name));
+      return {
+        id,
+        title: `Recovered Pad ${index + 1}`,
+        createdAt: stats.birthtime.toISOString(),
+        updatedAt: stats.mtime.toISOString(),
+      };
+    });
+  if (!recoveredPads.length) {
+    const id = crypto.randomUUID();
+    writeJson(path.join(padsRoot, `${id}.json`), defaultScene());
+    recoveredPads.push({ id, title: 'Welcome', createdAt: now, updatedAt: now });
+  }
+  return { version: 1, activePadId: recoveredPads[0].id, workspacePath: '', pads: recoveredPads };
+}
+
+function isValidState(state) {
+  return state && state.version === 1 && Array.isArray(state.pads) && state.pads.length > 0
+    && state.pads.every((pad) => pad && typeof pad.id === 'string' && typeof pad.title === 'string')
+    && state.pads.some((pad) => pad.id === state.activePadId);
+}
+
 function ensureStorage() {
   dataRoot = path.join(app.getPath('userData'), 'data');
   padsRoot = path.join(dataRoot, 'pads');
   statePath = path.join(dataRoot, 'state.json');
   fs.mkdirSync(padsRoot, { recursive: true });
-  if (!fs.existsSync(statePath)) {
-    const id = crypto.randomUUID();
-    writeJson(path.join(padsRoot, `${id}.json`), defaultScene());
-    writeJson(statePath, {
-      version: 1,
-      activePadId: id,
-      workspacePath: '',
-      pads: [{ id, title: 'Welcome', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
-    });
+  try {
+    if (!fs.existsSync(statePath)) throw new Error('State does not exist.');
+    const state = readState();
+    if (!isValidState(state)) throw new Error('State is invalid.');
+    for (const pad of state.pads) {
+      safePadId(pad.id);
+      const padPath = path.join(padsRoot, `${pad.id}.json`);
+      if (!fs.existsSync(padPath)) writeJson(padPath, defaultScene());
+    }
+  } catch {
+    if (fs.existsSync(statePath)) {
+      fs.renameSync(statePath, path.join(dataRoot, `state.corrupt-${Date.now()}.json`));
+    }
+    writeJson(statePath, rebuiltState());
   }
 }
 
@@ -55,13 +88,13 @@ function safePadId(id) {
 
 function currentWorkspace() {
   const workspacePath = readState().workspacePath;
-  return workspacePath && fs.existsSync(workspacePath) ? path.resolve(workspacePath) : '';
+  return workspacePath && fs.existsSync(workspacePath) ? fs.realpathSync(workspacePath) : '';
 }
 
 function safeWorkspacePath(candidate) {
   const root = currentWorkspace();
   if (!root) throw new Error('Choose a workspace folder first.');
-  const resolved = path.resolve(candidate);
+  const resolved = fs.realpathSync(path.resolve(candidate));
   const relative = path.relative(root, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Path is outside the selected workspace.');
   return resolved;
@@ -95,7 +128,15 @@ function registerIpc() {
   ipcMain.handle('pads:load', (_event, id) => {
     safePadId(id);
     const target = path.join(padsRoot, `${id}.json`);
-    return fs.existsSync(target) ? JSON.parse(fs.readFileSync(target, 'utf8')) : defaultScene();
+    if (!fs.existsSync(target)) return defaultScene();
+    try {
+      return JSON.parse(fs.readFileSync(target, 'utf8'));
+    } catch {
+      fs.renameSync(target, path.join(padsRoot, `${id}.corrupt-${Date.now()}.json`));
+      const scene = defaultScene();
+      writeJson(target, scene);
+      return scene;
+    }
   });
   ipcMain.handle('pads:create', (_event, title = 'Untitled') => {
     const state = readState();
@@ -172,7 +213,9 @@ function registerIpc() {
   });
   ipcMain.handle('workspace:write', (_event, filePath, contents) => {
     const resolved = safeWorkspacePath(filePath);
-    fs.writeFileSync(resolved, String(contents), 'utf8');
+    const value = String(contents);
+    if (Buffer.byteLength(value, 'utf8') > 5 * 1024 * 1024) throw new Error('Only text files under 5 MB can be saved.');
+    fs.writeFileSync(resolved, value, 'utf8');
     return true;
   });
   ipcMain.handle('workspace:reveal', (_event, targetPath) => shell.showItemInFolder(safeWorkspacePath(targetPath)));
@@ -218,20 +261,42 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   if (app.isPackaged) mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   else mainWindow.loadURL(process.env.PAD_DESKTOP_DEV_URL || 'http://127.0.0.1:3003');
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const protocol = new URL(url).protocol;
+      if (protocol === 'https:' || protocol === 'http:') void shell.openExternal(url);
+    } catch { /* Ignore malformed external URLs. */ }
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const currentUrl = mainWindow.webContents.getURL();
+    if (url !== currentUrl) event.preventDefault();
+  });
+  mainWindow.on('closed', () => { mainWindow = undefined; });
 }
 
-app.whenReady().then(() => {
-  ensureStorage();
-  registerIpc();
-  createWindow();
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-});
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+  app.whenReady().then(() => {
+    ensureStorage();
+    registerIpc();
+    createWindow();
+    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  });
+}
 
 app.on('before-quit', () => {
   for (const child of terminals.values()) if (!child.killed) child.kill();
