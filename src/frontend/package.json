@@ -26,10 +26,10 @@
     "wait-on": "^8.0.4"
   },
   "scripts": {
-    "start": "vite",
-    "dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:3003 && electron .\"",
+    "start": "node scripts/prepare-assets.cjs && vite",
+    "dev": "node scripts/prepare-assets.cjs && concurrently -k \"vite\" \"wait-on http://127.0.0.1:3003 && electron .\"",
     "desktop": "electron .",
-    "build": "vite build && npm run prepare:desktop",
+    "build": "node scripts/prepare-assets.cjs && vite build && npm run prepare:desktop",
     "prepare:desktop": "node scripts/prepare-desktop.cjs",
     "typecheck": "tsc --noEmit",
     "dist:win": "npm run build && electron-builder --win nsis",

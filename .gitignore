@@ -3,6 +3,7 @@ node_modules.*
 release
 dist
 src/frontend/desktop-app/electron/
+src/frontend/public/fonts/
 **/__pycache__/
 config/runtime.env
 config/runtime/

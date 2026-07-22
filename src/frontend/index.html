@@ -8,12 +8,13 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws:; worker-src 'self' blob:"
+      content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: file:; connect-src 'self' ws:; worker-src 'self' blob:"
     />
     <meta name="theme-color" content="#111318" />
 
     <title>Pad Local</title>
     <link rel="icon" type="image/png" href="./assets/images/app-icon.png" />
+    <script>window.EXCALIDRAW_ASSET_PATH = new URL("./", window.location.href).href;</script>
   </head>
 
   <body style="background-color: #111111;">
