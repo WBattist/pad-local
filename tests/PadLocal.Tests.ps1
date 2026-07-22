@@ -45,6 +45,41 @@ Describe "Generated configuration" {
         $second = Initialize-PadConfiguration
         $second.POSTGRES_PASSWORD | Should -Be $firstPassword
     }
+
+    It "uses a Coder-valid bootstrap email and migrates the legacy value" {
+        Set-PadEnvValue -Path (Join-Path $script:TempRoot "config\runtime.env") -Name "CODER_BOOTSTRAP_EMAIL" -Value "coder-admin@localhost"
+        $values = Initialize-PadConfiguration
+        $values.CODER_BOOTSTRAP_EMAIL | Should -Be "coder-admin@pad.local"
+    }
+
+    It "recovers a Coder session after partial first-user creation" {
+        Mock Invoke-RestMethod { [pscustomobject]@{ session_token = "recovered-session" } }
+        $environment = [ordered]@{
+            CODER_PORT = "7080"
+            CODER_BOOTSTRAP_EMAIL = "coder-admin@pad.local"
+            CODER_BOOTSTRAP_PASSWORD = "test-password"
+        }
+        Get-CoderBootstrapSessionToken -Environment $environment | Should -Be "recovered-session"
+        Should -Invoke Invoke-RestMethod -Times 1 -Exactly
+    }
+
+    It "supplies the Coder URL with recovered session tokens" {
+        $common = Get-Content -Raw $script:CommonPath
+        $common | Should -Match 'CODER_URL=http://127\.0\.0\.1:7080'
+    }
+
+    It "parses wrapped and bare Coder template JSON" {
+        $wrapped = @(ConvertFrom-CoderTemplateListJson -Json '{"Template":{"id":"one","name":"pad-local"}}')
+        $bare = @(ConvertFrom-CoderTemplateListJson -Json '[{"id":"two","name":"pad-local"}]')
+        $wrapped[0].id | Should -Be "one"
+        $bare[0].id | Should -Be "two"
+    }
+
+    It "replaces only its own stale automation token" {
+        $common = Get-Content -Raw $script:CommonPath
+        $common | Should -Match 'tokens remove \$automationTokenName --delete'
+        $common | Should -Match 'tokens create --name \$automationTokenName'
+    }
 }
 
 Describe "Compose architecture" {
@@ -69,6 +104,12 @@ Describe "Compose architecture" {
         $script:Compose | Should -Match 'postgres-init:'
         $script:Compose | Should -Match 'condition: service_completed_successfully'
         $script:Compose | Should -Not -Match 'docker-entrypoint-initdb\.d/10-pad-local-databases\.sh'
+    }
+
+    It "makes the persistent Coder CLI session directory writable" {
+        $script:Compose | Should -Match 'coder-cli-init:'
+        $script:Compose | Should -Match 'chown -R 1000:1000 /home/coder/\.config/coderv2'
+        $script:Compose | Should -Match 'coder-cli-init:\s*\r?\n\s+condition: service_completed_successfully'
     }
 
     It "passes Compose detach flags through PowerShell parameter binding" {
@@ -110,6 +151,12 @@ Describe "Docker prerequisite probes" {
     It "detects Docker Desktop's per-user installation" {
         $script:Common | Should -Match 'Programs\\DockerDesktop\\Docker Desktop\.exe'
         $script:Common | Should -Match 'Programs\\DockerDesktop\\resources\\bin'
+    }
+
+    It "captures native stderr before restoring strict error handling" {
+        $script:Common | Should -Match 'function Invoke-PadComposeCapture'
+        $script:Common | Should -Match '\$ErrorActionPreference = "Continue"'
+        $script:Common | Should -Match 'throw \(\$output -join \[Environment\]::NewLine\)'
     }
 }
 

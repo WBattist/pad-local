@@ -96,6 +96,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
+  coder-cli-init:
+    image: ${CODER_IMAGE}
+    user: "0:0"
+    volumes:
+      - coder_cli_data:/home/coder/.config/coderv2
+    entrypoint: ["sh", "-c", "chown -R 1000:1000 /home/coder/.config/coderv2"]
+    restart: "no"
+
   coder:
     image: ${CODER_IMAGE}
     environment:
@@ -125,6 +133,8 @@ services:
       postgres:
         condition: service_healthy
       postgres-init:
+        condition: service_completed_successfully
+      coder-cli-init:
         condition: service_completed_successfully
       keycloak:
         condition: service_healthy

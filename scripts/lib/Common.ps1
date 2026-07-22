@@ -129,13 +129,18 @@ function Initialize-PadConfiguration {
         CODER_API_KEY = ""
         CODER_TEMPLATE_ID = ""
         CODER_DEFAULT_ORGANIZATION = ""
-        CODER_BOOTSTRAP_EMAIL = "coder-admin@localhost"
+        CODER_BOOTSTRAP_EMAIL = "coder-admin@pad.local"
         CODER_BOOTSTRAP_USER = "pad-admin"
     }.GetEnumerator()) {
         $environment = Get-PadEnvironment
         if (-not $environment.Contains($entry.Key)) {
             Set-PadEnvValue -Path $paths.RuntimeEnv -Name $entry.Key -Value $entry.Value
         }
+    }
+
+    $environment = Get-PadEnvironment
+    if ($environment.CODER_BOOTSTRAP_EMAIL -eq "coder-admin@localhost") {
+        Set-PadEnvValue -Path $paths.RuntimeEnv -Name "CODER_BOOTSTRAP_EMAIL" -Value "coder-admin@pad.local"
     }
 
     $environment = Get-PadEnvironment
@@ -285,12 +290,25 @@ function Invoke-PadComposeCapture {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
     $paths = Get-PadPaths
     Push-Location $paths.Root
+    $previousErrorActionPreference = $ErrorActionPreference
+    $output = @()
+    $exitCode = 1
     try {
         $composeArguments = @(Get-PadComposeArguments) + $Arguments
-        $output = & docker @composeArguments 2>&1
-        if ($LASTEXITCODE -ne 0) { throw ($output -join [Environment]::NewLine) }
-        return $output
-    } finally { Pop-Location }
+        # Windows PowerShell 5.1 represents redirected native stderr as
+        # non-terminating ErrorRecords. Keep collecting them so callers get
+        # the actual CLI failure instead of a generic NativeCommandError.
+        $ErrorActionPreference = "Continue"
+        $output = @(& docker @composeArguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    } catch {
+        $output = @($_)
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        Pop-Location
+    }
+    if ($exitCode -ne 0) { throw ($output -join [Environment]::NewLine) }
+    return $output
 }
 
 function Wait-PadUrl {
@@ -362,10 +380,34 @@ function Invoke-CoderCli {
         [string]$SessionToken,
         [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
     )
-    $prefix = @("exec", "-T")
+    $prefix = @("exec", "-T", "-e", "CODER_URL=http://127.0.0.1:7080")
     if ($SessionToken) { $prefix += @("-e", "CODER_SESSION_TOKEN=$SessionToken") }
     $prefix += @("coder", "/opt/coder")
     return @(Invoke-PadComposeCapture @prefix @Arguments)
+}
+
+function Get-CoderBootstrapSessionToken {
+    param([Parameter(Mandatory)][Collections.IDictionary]$Environment)
+    $body = @{
+        email = [string]$Environment.CODER_BOOTSTRAP_EMAIL
+        password = [string]$Environment.CODER_BOOTSTRAP_PASSWORD
+    } | ConvertTo-Json -Compress
+    try {
+        $response = Invoke-RestMethod -Uri "http://localhost:$($Environment.CODER_PORT)/api/v2/users/login" `
+            -Method Post -ContentType "application/json" -Body $body -TimeoutSec 15
+        return [string]$response.session_token
+    } catch {
+        return ""
+    }
+}
+
+function ConvertFrom-CoderTemplateListJson {
+    param([Parameter(Mandatory)][string]$Json)
+    $parsed = $Json | ConvertFrom-Json
+    $properties = @($parsed.PSObject.Properties.Name)
+    if ($properties -contains "Template") { return @($parsed.Template) }
+    if ($properties -contains "templates") { return @($parsed.templates) }
+    return @($parsed)
 }
 
 function Initialize-CoderBootstrap {
@@ -381,6 +423,9 @@ function Initialize-CoderBootstrap {
         $sessionToken = ((Invoke-CoderCli -SessionToken "" login token) -join "`n").Trim()
     } catch { }
     if (-not $sessionToken) {
+        $sessionToken = Get-CoderBootstrapSessionToken -Environment $environment
+    }
+    if (-not $sessionToken) {
         $loginArguments = @(
             "login", $url,
             "--first-user-email", [string]$environment.CODER_BOOTSTRAP_EMAIL,
@@ -389,12 +434,27 @@ function Initialize-CoderBootstrap {
             "--first-user-password", [string]$environment.CODER_BOOTSTRAP_PASSWORD,
             "--first-user-trial=false"
         )
-        Invoke-CoderCli -SessionToken "" @loginArguments | Out-Null
-        $sessionToken = ((Invoke-CoderCli -SessionToken "" login token) -join "`n").Trim()
+        $loginFailure = $null
+        try {
+            Invoke-CoderCli -SessionToken "" @loginArguments | Out-Null
+        } catch {
+            $loginFailure = $_
+        }
+        try {
+            $sessionToken = ((Invoke-CoderCli -SessionToken "" login token) -join "`n").Trim()
+        } catch { }
+        if (-not $sessionToken) {
+            $sessionToken = Get-CoderBootstrapSessionToken -Environment $environment
+        }
+        if (-not $sessionToken -and $loginFailure) { throw $loginFailure }
     }
     if (-not $sessionToken) { throw "Coder did not return a bootstrap session token." }
 
-    $apiToken = ((Invoke-CoderCli -SessionToken $sessionToken tokens create --name pad-local-backend --lifetime 10y) -join "`n").Trim()
+    $automationTokenName = "pad-local-backend"
+    try {
+        Invoke-CoderCli -SessionToken $sessionToken tokens remove $automationTokenName --delete | Out-Null
+    } catch { }
+    $apiToken = ((Invoke-CoderCli -SessionToken $sessionToken tokens create --name $automationTokenName --lifetime 10y) -join "`n").Trim()
     if (-not $apiToken) { throw "Coder automation token creation returned no token." }
     $organizationId = ((Invoke-CoderCli -SessionToken $sessionToken organizations show selected --only-id) -join "`n").Trim()
     if (-not $organizationId) { throw "Coder default organization discovery returned no ID." }
@@ -405,7 +465,7 @@ function Initialize-CoderBootstrap {
     )
     Invoke-CoderCli -SessionToken $sessionToken @pushArguments | Out-Null
     $templatesJson = (Invoke-CoderCli -SessionToken $sessionToken templates list --output json) -join "`n"
-    $templates = $templatesJson | ConvertFrom-Json
+    $templates = @(ConvertFrom-CoderTemplateListJson -Json $templatesJson)
     $template = @($templates) | Where-Object { $_.name -eq $environment.CODER_TEMPLATE_NAME } | Select-Object -First 1
     if (-not $template -or -not $template.id) { throw "Coder template ID discovery failed." }
 
