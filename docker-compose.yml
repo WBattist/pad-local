@@ -11,13 +11,29 @@ services:
       KEYCLOAK_POSTGRES_DB: ${KEYCLOAK_POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./bootstrap/postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-pad-local-databases.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 30
     restart: unless-stopped
+
+  postgres-init:
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      CODER_POSTGRES_DB: ${CODER_POSTGRES_DB}
+      KEYCLOAK_POSTGRES_DB: ${KEYCLOAK_POSTGRES_DB}
+    volumes:
+      - ./bootstrap/postgres/init-databases.sh:/opt/pad/init-databases.sh:ro
+    entrypoint: ["/bin/sh", "/opt/pad/init-databases.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   redis:
     image: redis:7-alpine
@@ -53,6 +69,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/9000'"]
       interval: 10s
@@ -106,6 +124,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
       keycloak:
         condition: service_healthy
       docker-proxy:

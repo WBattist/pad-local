@@ -64,6 +64,12 @@ Describe "Compose architecture" {
         $common | Should -Match "Invoke-PadCompose stop"
         $cli | Should -Not -Match 'finally[\s\S]{0,500}down\s+--volumes'
     }
+
+    It "repairs database initialization after an interrupted first run" {
+        $script:Compose | Should -Match 'postgres-init:'
+        $script:Compose | Should -Match 'condition: service_completed_successfully'
+        $script:Compose | Should -Not -Match 'docker-entrypoint-initdb\.d/10-pad-local-databases\.sh'
+    }
 }
 
 Describe "Installer contract" {
@@ -91,5 +97,22 @@ Describe "Docker prerequisite probes" {
         $script:Common | Should -Match 'function Invoke-DockerProbe'
         $script:Common | Should -Match '\$ErrorActionPreference = "SilentlyContinue"'
         $script:Common | Should -Not -Match '& docker info --format "\{\{\.OSType\}\}" \*> \$null'
+    }
+
+    It "detects Docker Desktop's per-user installation" {
+        $script:Common | Should -Match 'Programs\\DockerDesktop\\Docker Desktop\.exe'
+        $script:Common | Should -Match 'Programs\\DockerDesktop\\resources\\bin'
+    }
+}
+
+Describe "Cross-platform line endings" {
+    It "forces shell scripts to remain LF when cloned on Windows" {
+        $attributes = Get-Content -Raw (Join-Path $script:RepositoryRoot ".gitattributes")
+        $attributes | Should -Match '\*\.sh text eol=lf'
+
+        foreach ($file in Get-ChildItem -Path $script:RepositoryRoot -Filter *.sh -Recurse -File) {
+            if ($file.FullName -match '[\\/]node_modules[\\/]') { continue }
+            [IO.File]::ReadAllText($file.FullName) | Should -Not -Match "`r`n" -Because $file.FullName
+        }
     }
 }

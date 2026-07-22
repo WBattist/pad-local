@@ -159,6 +159,7 @@ function Initialize-PadConfiguration {
 function Find-DockerDesktop {
     $candidates = @(
         (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\Docker Desktop.exe"),
         (Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe")
     )
     foreach ($candidate in $candidates) {
@@ -169,9 +170,15 @@ function Find-DockerDesktop {
 
 function Add-DockerCliToCurrentPath {
     if (Get-Command docker -ErrorAction SilentlyContinue) { return }
-    $cliDirectory = Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"
-    if (Test-Path -LiteralPath (Join-Path $cliDirectory "docker.exe")) {
-        $env:Path = "$cliDirectory;$($env:Path)"
+    $cliDirectories = @(
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
+        (Join-Path $env:LOCALAPPDATA "Programs\DockerDesktop\resources\bin")
+    )
+    foreach ($cliDirectory in $cliDirectories) {
+        if (Test-Path -LiteralPath (Join-Path $cliDirectory "docker.exe")) {
+            $env:Path = "$cliDirectory;$($env:Path)"
+            return
+        }
     }
 }
 
