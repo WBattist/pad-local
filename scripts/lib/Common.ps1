@@ -175,12 +175,34 @@ function Add-DockerCliToCurrentPath {
     }
 }
 
+function Invoke-DockerProbe {
+    param([Parameter(Mandatory)][string[]]$Arguments)
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 promotes redirected native stderr to an
+        # ErrorRecord. Suppress it while probing so the exit code can be
+        # handled below instead of terminating under ErrorActionPreference=Stop.
+        $ErrorActionPreference = "SilentlyContinue"
+        $output = @(& docker @Arguments 2>$null)
+        $exitCode = $LASTEXITCODE
+    } catch {
+        $output = @()
+        $exitCode = 1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    [pscustomobject]@{
+        ExitCode = $exitCode
+        Output = ($output -join "`n").Trim()
+    }
+}
+
 function Wait-DockerDaemon {
     param([ValidateRange(10, 600)][int]$TimeoutSeconds = 180)
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
-        & docker info --format "{{.OSType}}" *> $null
-        if ($LASTEXITCODE -eq 0) { return }
+        $probe = Invoke-DockerProbe -Arguments @("info", "--format", "{{.OSType}}")
+        if ($probe.ExitCode -eq 0) { return }
         Start-Sleep -Seconds 3
     } while ([DateTime]::UtcNow -lt $deadline)
     throw "Docker Desktop did not become ready within $TimeoutSeconds seconds. Open Docker Desktop and retry."
@@ -196,8 +218,8 @@ function Assert-PadDocker {
         }
         throw "The Docker CLI is not available on PATH. Install Docker Desktop (Windows) or Docker Engine (Linux)."
     }
-    & docker info --format "{{.OSType}}" *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $probe = Invoke-DockerProbe -Arguments @("info", "--format", "{{.OSType}}")
+    if ($probe.ExitCode -ne 0) {
         if ($StartIfNeeded -and $dockerDesktop) {
             Write-PadMessage "Starting Docker Desktop..."
             Start-Process -FilePath $dockerDesktop | Out-Null
@@ -206,12 +228,12 @@ function Assert-PadDocker {
             throw "The Docker daemon is not reachable. Start Docker Desktop and retry."
         }
     }
-    $osType = (& docker info --format "{{.OSType}}" 2>$null).Trim()
-    if ($LASTEXITCODE -ne 0 -or $osType -ne "linux") {
+    $probe = Invoke-DockerProbe -Arguments @("info", "--format", "{{.OSType}}")
+    if ($probe.ExitCode -ne 0 -or $probe.Output -ne "linux") {
         throw "Docker Desktop must use Linux containers. Switch to the Linux container engine and retry."
     }
-    & docker compose version *> $null
-    if ($LASTEXITCODE -ne 0) { throw "Docker Compose v2 is required. Update Docker Desktop and verify 'docker compose version'." }
+    $probe = Invoke-DockerProbe -Arguments @("compose", "version")
+    if ($probe.ExitCode -ne 0) { throw "Docker Compose v2 is required. Update Docker Desktop and verify 'docker compose version'." }
 }
 
 function Get-PadComposeArguments {

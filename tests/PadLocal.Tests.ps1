@@ -83,3 +83,13 @@ Describe "Installer contract" {
         $script:Installer | Should -Match 'PROCESSOR_ARCHITECTURE'
     }
 }
+
+Describe "Docker prerequisite probes" {
+    BeforeAll { $script:Common = Get-Content -Raw $script:CommonPath }
+
+    It "suppresses Windows PowerShell native stderr while checking Docker" {
+        $script:Common | Should -Match 'function Invoke-DockerProbe'
+        $script:Common | Should -Match '\$ErrorActionPreference = "SilentlyContinue"'
+        $script:Common | Should -Not -Match '& docker info --format "\{\{\.OSType\}\}" \*> \$null'
+    }
+}
