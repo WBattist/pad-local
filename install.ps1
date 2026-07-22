@@ -21,7 +21,17 @@ if ($env:OS -ne "Windows_NT") {
 }
 
 $windows = [Environment]::OSVersion.Version
-$architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+$architecture = [Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITEW6432", "Process")
+if (-not $architecture) {
+    $architecture = [Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE", "Process")
+}
+if (-not $architecture) {
+    try {
+        $architecture = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).OSArchitecture
+    } catch {
+        $architecture = "unknown"
+    }
+}
 $powerShellVersion = $PSVersionTable.PSVersion.ToString()
 $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
 $installRoot = Join-Path $localAppData "PadLocal"

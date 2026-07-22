@@ -77,4 +77,9 @@ Describe "Installer contract" {
     It "defaults to the requested fork" {
         $script:Installer | Should -Match 'WBattist/pad-local'
     }
+
+    It "does not require RuntimeInformation OSArchitecture on Windows PowerShell 5.1" {
+        $script:Installer | Should -Not -Match 'RuntimeInformation\]::OSArchitecture'
+        $script:Installer | Should -Match 'PROCESSOR_ARCHITECTURE'
+    }
 }
