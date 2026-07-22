@@ -2,9 +2,19 @@ const { cpSync, mkdirSync, rmSync } = require("node:fs");
 const { join } = require("node:path");
 
 const frontendRoot = join(__dirname, "..");
-const source = join(frontendRoot, "node_modules", "@atyrode", "excalidraw", "dist", "prod", "fonts");
-const destination = join(frontendRoot, "public", "fonts");
+const copies = [
+  {
+    source: join(frontendRoot, "node_modules", "@atyrode", "excalidraw", "dist", "prod", "fonts"),
+    destination: join(frontendRoot, "public", "fonts"),
+  },
+  {
+    source: join(frontendRoot, "node_modules", "monaco-editor", "min", "vs"),
+    destination: join(frontendRoot, "public", "assets", "monaco", "vs"),
+  },
+];
 
-rmSync(destination, { recursive: true, force: true });
-mkdirSync(destination, { recursive: true });
-cpSync(source, destination, { recursive: true });
+for (const { source, destination } of copies) {
+  rmSync(destination, { recursive: true, force: true });
+  mkdirSync(destination, { recursive: true });
+  cpSync(source, destination, { recursive: true });
+}

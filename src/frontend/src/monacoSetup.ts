@@ -1,4 +1,7 @@
 import { loader } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
 
-loader.config({ monaco });
+loader.config({
+  paths: {
+    vs: new URL('./assets/monaco/vs', window.location.href).href,
+  },
+});
