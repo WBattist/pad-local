@@ -52,12 +52,14 @@
       "package.json"
     ],
     "win": {
+      "icon": "build/icon.png",
       "artifactName": "Pad-Local-Setup-${version}-${arch}.${ext}",
       "target": [
         "nsis"
       ]
     },
     "linux": {
+      "icon": "build/icon.png",
       "artifactName": "Pad-Local-linux.${ext}",
       "category": "Development",
       "executableName": "pad-local",
