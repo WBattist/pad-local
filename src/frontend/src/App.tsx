@@ -65,6 +65,11 @@ export default function App() {
     }).catch((cause) => setError(cause.message));
   }, [loadPad]);
 
+  useEffect(() => window.padDesktop?.workspace.onChanged((nextWorkspace) => {
+    setWorkspace(nextWorkspace);
+    setSelectedFile('');
+  }), []);
+
   useEffect(() => () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     if (currentPadId.current && latestScene.current) {

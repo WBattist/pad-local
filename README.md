@@ -37,6 +37,14 @@ their original folder and are not duplicated into pad backups.
 The Data location shown in the app's status bar is the exact directory used on your machine.
 Removing the app does not remove that data automatically.
 
+You can also open a workspace folder from a terminal, similar to other local development tools:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Pad Local\Pad Local.exe" C:\path\to\project
+```
+
+On Linux, run `pad-local /path/to/project`.
+
 ## Development
 
 The desktop client lives in `src/frontend`.

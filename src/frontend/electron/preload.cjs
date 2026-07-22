@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('padDesktop', {
     read: (filePath) => ipcRenderer.invoke('workspace:read', filePath),
     write: (filePath, contents) => ipcRenderer.invoke('workspace:write', filePath, contents),
     reveal: (filePath) => ipcRenderer.invoke('workspace:reveal', filePath),
+    onChanged: (callback) => {
+      const listener = (_event, payload) => callback(payload);
+      ipcRenderer.on('workspace:changed', listener);
+      return () => ipcRenderer.removeListener('workspace:changed', listener);
+    },
   },
   terminal: {
     start: (cwd) => ipcRenderer.invoke('terminal:start', cwd),

@@ -129,6 +129,20 @@ function listWorkspaceFiles(root, limit = 2500) {
   return results;
 }
 
+function setWorkspaceFromArguments(argv) {
+  const start = process.defaultApp ? 2 : 1;
+  const candidate = argv.slice(start).find((value) => value && !value.startsWith('-'));
+  if (!candidate) return null;
+  const resolved = path.resolve(candidate);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) return null;
+  const state = readState();
+  state.workspacePath = fs.realpathSync(resolved);
+  saveState(state);
+  const workspace = { path: state.workspacePath, files: listWorkspaceFiles(state.workspacePath) };
+  mainWindow?.webContents.send('workspace:changed', workspace);
+  return workspace;
+}
+
 function registerIpc() {
   ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataPath: dataRoot, platform: process.platform }));
   ipcMain.handle('backup:export', async () => {
@@ -368,7 +382,8 @@ const hasInstanceLock = app.requestSingleInstanceLock();
 if (!hasInstanceLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
+    setWorkspaceFromArguments(argv);
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
@@ -376,6 +391,7 @@ if (!hasInstanceLock) {
   });
   app.whenReady().then(() => {
     ensureStorage();
+    setWorkspaceFromArguments(process.argv);
     registerIpc();
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

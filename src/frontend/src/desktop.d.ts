@@ -25,6 +25,7 @@ declare global {
         read(path: string): Promise<string>;
         write(path: string, contents: string): Promise<boolean>;
         reveal(path: string): Promise<void>;
+        onChanged(callback: (workspace: WorkspaceSnapshot) => void): () => void;
       };
       terminal: {
         start(cwd?: string): Promise<{ id: string; cwd: string }>;
