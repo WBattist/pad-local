@@ -3,7 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-export function TerminalPane({ workspacePath }: { workspacePath: string }) {
+export function TerminalPane({ workspacePath, embedded = false }: { workspacePath: string; embedded?: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const processIdRef = useRef('');
   const [status, setStatus] = useState('Starting terminal…');
@@ -52,7 +52,7 @@ export function TerminalPane({ workspacePath }: { workspacePath: string }) {
   }, [workspacePath]);
 
   return (
-    <section className="terminal-pane">
+    <section className={`terminal-pane ${embedded ? 'embedded' : ''}`}>
       <header><span>Terminal</span><span className="terminal-cwd">{status}</span></header>
       <div ref={hostRef} className="terminal-host" />
     </section>

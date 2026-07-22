@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { FolderOpen, Save, X } from 'lucide-react';
+import './monacoSetup';
 
 const languageFor = (filePath: string) => {
   const extension = filePath.split('.').pop()?.toLowerCase();

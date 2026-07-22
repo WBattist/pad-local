@@ -323,20 +323,21 @@ function registerIpc() {
     const cwd = requestedDirectory ? safeWorkspacePath(requestedDirectory) : currentWorkspace() || app.getPath('home');
     const id = crypto.randomUUID();
     const executable = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/sh');
-    const args = process.platform === 'win32' ? ['-NoLogo', '-NoProfile', '-NoExit', '-Command', '-'] : ['-i'];
+    const args = process.platform === 'win32' ? ['-NoLogo', '-NoProfile', '-NoExit'] : ['-i'];
     const child = spawn(executable, args, { cwd, windowsHide: true, env: { ...process.env, TERM: 'xterm-256color' } });
     terminals.set(id, child);
     const emit = (data) => mainWindow?.webContents.send('terminal:data', { id, data: data.toString() });
     child.stdout.on('data', emit);
     child.stderr.on('data', emit);
+    child.on('error', (error) => emit(`\r\n[terminal error: ${error.message}]\r\n`));
     child.on('exit', (code) => { emit(`\r\n[process exited ${code ?? ''}]\r\n`); terminals.delete(id); });
-    if (process.platform === 'win32') child.stdin.write("$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()\r\n");
     return { id, cwd };
   });
   ipcMain.handle('terminal:write', (_event, id, data) => {
     const child = terminals.get(id);
-    if (!child || child.killed) return false;
-    child.stdin.write(String(data));
+    if (!child || child.killed || !child.stdin.writable) return false;
+    const input = process.platform === 'win32' ? String(data).replace(/\r/g, '\r\n') : String(data);
+    child.stdin.write(input);
     return true;
   });
   ipcMain.handle('terminal:kill', (_event, id) => {

@@ -8,6 +8,7 @@
   "dependencies": {
     "@atyrode/excalidraw": "^0.18.0-15",
     "@monaco-editor/react": "^4.7.0",
+    "monaco-editor": "^0.56.0",
     "lucide-react": "^0.488.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
