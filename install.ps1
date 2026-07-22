@@ -49,8 +49,11 @@ try {
     }
 
     Write-Host "[pad] Starting the installer. No Docker, account, or server is required."
-    $arguments = if ($Silent) { @('/S') } else { @() }
-    $process = Start-Process -FilePath $installerPath -ArgumentList $arguments -Wait -PassThru
+    $process = if ($Silent) {
+        Start-Process -FilePath $installerPath -ArgumentList '/S' -Wait -PassThru
+    } else {
+        Start-Process -FilePath $installerPath -Wait -PassThru
+    }
     if ($process.ExitCode -ne 0) { throw "Pad Local setup exited with code $($process.ExitCode)." }
     Write-Host "[pad] Pad Local is installed. Open it from the Start menu."
 } finally {

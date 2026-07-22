@@ -30,6 +30,10 @@ x64 is currently supported.
 - Terminal processes run directly on your machine, starting in the selected workspace.
 - Nothing is uploaded by the desktop runtime.
 
+Use **Export** in the sidebar to save every pad to a portable JSON backup. **Import** adds copies
+from a backup without replacing the pads already on the machine. Workspace source files remain in
+their original folder and are not duplicated into pad backups.
+
 The Data location shown in the app's status bar is the exact directory used on your machine.
 Removing the app does not remove that data automatically.
 
