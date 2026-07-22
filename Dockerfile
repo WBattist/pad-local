@@ -20,3 +20,7 @@ CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port 8000 --workers ${A
 FROM nginx:1.27-alpine AS frontend
 COPY config/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8000
+
+# Preserve the repository's historical default image contract: a plain Docker build produces
+# the complete Pad application. Compose selects the lightweight `frontend` target explicitly.
+FROM app AS final

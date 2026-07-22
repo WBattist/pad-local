@@ -110,6 +110,9 @@ Results:
 - Generated-secret/realm idempotency: passed.
 - CLI four-argument port configuration and persistence: passed.
 - `git diff --check`: passed.
+- GitHub Actions PowerShell unit and Compose-model jobs: passed.
+- GitHub Actions Docker Buildx build for Linux amd64/ARM64: passed, including the frontend
+  production build and final Pad application image.
 - `pad doctor`: correctly reported the unavailable Docker Desktop/CLI and returned failure.
 
 ## Unresolved validation limitations
@@ -120,10 +123,10 @@ workspace creation, embedded terminal/code-server, Ctrl+C container cleanup, and
 volume persistence could not be executed here. They are explicitly covered by
 `tests/integration/README.md` for a dedicated Windows Docker Desktop host.
 
-The local Yarn dependency installation also stalled without output and was terminated; no
-frontend source was changed, but the frontend production build remains part of the Docker build
-that still requires the unavailable Docker engine. Windows ARM64 support remains contingent on
-all pinned/upstream images and the selected workspace image publishing compatible manifests.
+The local Yarn dependency installation stalled without output and was terminated. No frontend
+source was changed, and the production frontend build subsequently passed inside GitHub's Docker
+Buildx workflow. Windows ARM64 runtime support remains contingent on all pinned/upstream service
+images and the selected workspace image publishing compatible manifests.
 
 ## Security considerations
 
