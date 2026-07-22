@@ -67,6 +67,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [canvasApi, setCanvasApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const saveTimer = useRef<number | undefined>(undefined);
   const latestScene = useRef<LocalScene | null>(null);
   const currentPadId = useRef('');
@@ -185,17 +186,17 @@ export default function App() {
       return <div className="canvas-window"><TerminalPane workspacePath={workspace.path} embedded /></div>;
     }
     if (element.link === '!editor') {
-      return <div className="canvas-window"><EmbeddedEditor element={element} excalidrawAPI={excalidrawApi.current} /></div>;
+      return <div className="canvas-window"><EmbeddedEditor element={element} excalidrawAPI={canvasApi} /></div>;
     }
     return null;
-  }, [workspace.path]);
+  }, [canvasApi, workspace.path]);
 
   return (
     <main className="canvas-app">
       {scene ? (
         <Excalidraw
           key={activePadId}
-          excalidrawAPI={(api) => { excalidrawApi.current = api; }}
+          excalidrawAPI={(api) => { excalidrawApi.current = api; setCanvasApi(api); }}
           initialData={scene as any}
           onChange={saveCanvas}
           validateEmbeddable={true}

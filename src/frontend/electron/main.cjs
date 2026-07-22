@@ -322,8 +322,8 @@ function registerIpc() {
   ipcMain.handle('terminal:start', (_event, requestedDirectory) => {
     const cwd = requestedDirectory ? safeWorkspacePath(requestedDirectory) : currentWorkspace() || app.getPath('home');
     const id = crypto.randomUUID();
-    const executable = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/sh');
-    const args = process.platform === 'win32' ? ['-NoLogo', '-NoProfile', '-NoExit'] : ['-i'];
+    const executable = process.platform === 'win32' ? 'cmd.exe' : (process.env.SHELL || '/bin/sh');
+    const args = process.platform === 'win32' ? ['/Q', '/K'] : ['-i'];
     const child = spawn(executable, args, { cwd, windowsHide: true, env: { ...process.env, TERM: 'xterm-256color' } });
     terminals.set(id, child);
     const emit = (data) => mainWindow?.webContents.send('terminal:data', { id, data: data.toString() });
