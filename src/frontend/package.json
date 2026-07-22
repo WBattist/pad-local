@@ -48,7 +48,9 @@
     "prepare:desktop": "node scripts/prepare-desktop.cjs",
     "typecheck": "tsc --noEmit",
     "dist:win": "npm run build && electron-builder --win nsis",
-    "pack:win": "npm run build && electron-builder --win dir"
+    "pack:win": "npm run build && electron-builder --win dir",
+    "dist:linux": "npm run build && electron-builder --linux AppImage tar.gz",
+    "pack:linux": "npm run build && electron-builder --linux dir"
   },
   "build": {
     "appId": "com.wbattist.padlocal",
@@ -68,6 +70,15 @@
       "artifactName": "Pad-Local-Setup-${version}-${arch}.${ext}",
       "target": [
         "nsis"
+      ]
+    },
+    "linux": {
+      "artifactName": "Pad-Local-linux.${ext}",
+      "category": "Development",
+      "executableName": "pad-local",
+      "target": [
+        "AppImage",
+        "tar.gz"
       ]
     },
     "nsis": {

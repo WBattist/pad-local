@@ -53,8 +53,19 @@ Production renderer files and the Electron main process are staged into a minima
 Electron Builder runs. Runtime dependencies are bundled, so the installed application does not
 need a package manager or a system runtime.
 
-## Current direction
+## Install on Linux
 
-Windows is the primary target. Linux packaging follows the same local desktop architecture and is
-tracked in this repository. The former Docker/Keycloak/Coder implementation remains in history but
-is not part of the packaged desktop runtime.
+Download the AppImage from
+[GitHub Releases](https://github.com/WBattist/pad-local/releases), or install the unpacked desktop
+app for your user account:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WBattist/pad-local/main/install.sh | bash
+```
+
+The script downloads the x64 tarball into `~/.local/share/pad-local`, creates a launcher in
+`~/.local/bin`, and adds a desktop-menu entry. It does not install Docker or a language runtime.
+Build Linux packages with `pnpm dist:linux` from `src/frontend`.
+
+The former Docker/Keycloak/Coder implementation remains in Git history but is not part of the
+packaged desktop runtime.
