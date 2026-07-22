@@ -44,16 +44,19 @@
     "start": "vite",
     "dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:3003 && electron .\"",
     "desktop": "electron .",
-    "build": "vite build",
+    "build": "vite build && npm run prepare:desktop",
+    "prepare:desktop": "node scripts/prepare-desktop.cjs",
     "typecheck": "tsc --noEmit",
-    "dist:win": "npm run build && electron-builder --win nsis portable",
+    "dist:win": "npm run build && electron-builder --win nsis",
     "pack:win": "npm run build && electron-builder --win dir"
   },
   "build": {
     "appId": "com.wbattist.padlocal",
     "productName": "Pad Local",
     "asar": true,
+    "npmRebuild": false,
     "directories": {
+      "app": "desktop-app",
       "output": "release"
     },
     "files": [
@@ -62,10 +65,9 @@
       "package.json"
     ],
     "win": {
-      "artifactName": "Pad-Local-${version}-${arch}.${ext}",
+      "artifactName": "Pad-Local-Setup-${version}-${arch}.${ext}",
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ]
     },
     "nsis": {

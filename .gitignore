@@ -4,6 +4,7 @@ node_modules
 node_modules.*
 release
 dist
+src/frontend/desktop-app/electron/
 src/excalidraw
 .env
 src/frontend/.env.local

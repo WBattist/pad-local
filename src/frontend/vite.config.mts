@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: 'dist',
+      outDir: 'desktop-app/dist',
       emptyOutDir: true,
       target: 'es2022',
     },

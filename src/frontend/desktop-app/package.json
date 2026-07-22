@@ -1,0 +1,8 @@
+{
+  "name": "pad-local",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A self-contained local whiteboard and development workspace",
+  "author": "WBattist",
+  "main": "electron/main.cjs"
+}
