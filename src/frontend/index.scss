@@ -1,14 +1,13 @@
-@import 'src/css/_colors.scss';
-@import 'src/css/_excalidraw-overrides.scss';
-@import 'src/css/_fonts.scss';
-@import 'src/css/_defaults.scss';
+@import 'src/App.scss';
 
-/* Makes excalidraw fill the entire screen */
-#root {
-  height: 100vb;
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #111318;
+  color: #d7dce5;
 }
 
-/* Removes the default margin */
-body {
-  margin: 0;
-}
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+button, input { font: inherit; }
+button { color: inherit; }

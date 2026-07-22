@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
+    base: './',
     server: {
       port: 3003,
       open: false, // open the browser where app is started
@@ -27,6 +28,11 @@ export default defineConfig(({ mode }) => {
         target: "es2022",
         treeShaking: true,
       },
+    },
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
+      target: 'es2022',
     },
   };
 });

@@ -1,0 +1,241 @@
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { spawn } = require('node:child_process');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const terminals = new Map();
+let mainWindow;
+let dataRoot;
+let padsRoot;
+let statePath;
+
+const defaultScene = () => ({
+  elements: [],
+  appState: { theme: 'dark', gridModeEnabled: true, gridSize: 20, gridStep: 5 },
+  files: {},
+});
+
+function ensureStorage() {
+  dataRoot = path.join(app.getPath('userData'), 'data');
+  padsRoot = path.join(dataRoot, 'pads');
+  statePath = path.join(dataRoot, 'state.json');
+  fs.mkdirSync(padsRoot, { recursive: true });
+  if (!fs.existsSync(statePath)) {
+    const id = crypto.randomUUID();
+    writeJson(path.join(padsRoot, `${id}.json`), defaultScene());
+    writeJson(statePath, {
+      version: 1,
+      activePadId: id,
+      workspacePath: '',
+      pads: [{ id, title: 'Welcome', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+    });
+  }
+}
+
+function writeJson(target, value) {
+  const temporary = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(value, null, 2), 'utf8');
+  fs.renameSync(temporary, target);
+}
+
+function readState() {
+  return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+}
+
+function saveState(state) {
+  writeJson(statePath, state);
+  return state;
+}
+
+function safePadId(id) {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9-]{8,64}$/.test(id)) throw new Error('Invalid pad identifier.');
+  return id;
+}
+
+function currentWorkspace() {
+  const workspacePath = readState().workspacePath;
+  return workspacePath && fs.existsSync(workspacePath) ? path.resolve(workspacePath) : '';
+}
+
+function safeWorkspacePath(candidate) {
+  const root = currentWorkspace();
+  if (!root) throw new Error('Choose a workspace folder first.');
+  const resolved = path.resolve(candidate);
+  const relative = path.relative(root, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Path is outside the selected workspace.');
+  return resolved;
+}
+
+function listWorkspaceFiles(root, limit = 2500) {
+  const ignored = new Set(['.git', 'node_modules', '.venv', 'dist', 'build', '__pycache__']);
+  const results = [];
+  const visit = (directory, depth) => {
+    if (depth > 10 || results.length >= limit) return;
+    const entries = fs.readdirSync(directory, { withFileTypes: true })
+      .sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (results.length >= limit || ignored.has(entry.name)) continue;
+      const fullPath = path.join(directory, entry.name);
+      const relativePath = path.relative(root, fullPath);
+      results.push({ name: entry.name, path: fullPath, relativePath, type: entry.isDirectory() ? 'directory' : 'file', depth });
+      if (entry.isDirectory()) visit(fullPath, depth + 1);
+    }
+  };
+  visit(root, 0);
+  return results;
+}
+
+function registerIpc() {
+  ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataPath: dataRoot, platform: process.platform }));
+  ipcMain.handle('pads:list', () => {
+    const state = readState();
+    return { pads: state.pads, activePadId: state.activePadId };
+  });
+  ipcMain.handle('pads:load', (_event, id) => {
+    safePadId(id);
+    const target = path.join(padsRoot, `${id}.json`);
+    return fs.existsSync(target) ? JSON.parse(fs.readFileSync(target, 'utf8')) : defaultScene();
+  });
+  ipcMain.handle('pads:create', (_event, title = 'Untitled') => {
+    const state = readState();
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const pad = { id, title: String(title).trim().slice(0, 80) || 'Untitled', createdAt: now, updatedAt: now };
+    state.pads.push(pad);
+    state.activePadId = id;
+    writeJson(path.join(padsRoot, `${id}.json`), defaultScene());
+    saveState(state);
+    return pad;
+  });
+  ipcMain.handle('pads:save', (_event, id, scene) => {
+    safePadId(id);
+    const state = readState();
+    const pad = state.pads.find((item) => item.id === id);
+    if (!pad) throw new Error('Pad not found.');
+    pad.updatedAt = new Date().toISOString();
+    state.activePadId = id;
+    writeJson(path.join(padsRoot, `${id}.json`), scene || defaultScene());
+    saveState(state);
+    return true;
+  });
+  ipcMain.handle('pads:rename', (_event, id, title) => {
+    safePadId(id);
+    const state = readState();
+    const pad = state.pads.find((item) => item.id === id);
+    if (!pad) throw new Error('Pad not found.');
+    pad.title = String(title).trim().slice(0, 80) || 'Untitled';
+    pad.updatedAt = new Date().toISOString();
+    saveState(state);
+    return pad;
+  });
+  ipcMain.handle('pads:delete', (_event, id) => {
+    safePadId(id);
+    const state = readState();
+    if (state.pads.length <= 1) throw new Error('Keep at least one pad.');
+    state.pads = state.pads.filter((item) => item.id !== id);
+    if (state.activePadId === id) state.activePadId = state.pads[0].id;
+    saveState(state);
+    fs.rmSync(path.join(padsRoot, `${id}.json`), { force: true });
+    return state.activePadId;
+  });
+  ipcMain.handle('pads:activate', (_event, id) => {
+    safePadId(id);
+    const state = readState();
+    if (!state.pads.some((item) => item.id === id)) throw new Error('Pad not found.');
+    state.activePadId = id;
+    saveState(state);
+    return true;
+  });
+
+  ipcMain.handle('workspace:get', () => {
+    const workspacePath = currentWorkspace();
+    return { path: workspacePath, files: workspacePath ? listWorkspaceFiles(workspacePath) : [] };
+  });
+  ipcMain.handle('workspace:choose', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory', 'createDirectory'] });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const state = readState();
+    state.workspacePath = path.resolve(result.filePaths[0]);
+    saveState(state);
+    return { path: state.workspacePath, files: listWorkspaceFiles(state.workspacePath) };
+  });
+  ipcMain.handle('workspace:refresh', () => {
+    const workspacePath = currentWorkspace();
+    return { path: workspacePath, files: workspacePath ? listWorkspaceFiles(workspacePath) : [] };
+  });
+  ipcMain.handle('workspace:read', (_event, filePath) => {
+    const resolved = safeWorkspacePath(filePath);
+    const stats = fs.statSync(resolved);
+    if (!stats.isFile() || stats.size > 5 * 1024 * 1024) throw new Error('Only text files under 5 MB can be opened.');
+    return fs.readFileSync(resolved, 'utf8');
+  });
+  ipcMain.handle('workspace:write', (_event, filePath, contents) => {
+    const resolved = safeWorkspacePath(filePath);
+    fs.writeFileSync(resolved, String(contents), 'utf8');
+    return true;
+  });
+  ipcMain.handle('workspace:reveal', (_event, targetPath) => shell.showItemInFolder(safeWorkspacePath(targetPath)));
+
+  ipcMain.handle('terminal:start', (_event, requestedDirectory) => {
+    const cwd = requestedDirectory ? safeWorkspacePath(requestedDirectory) : currentWorkspace() || app.getPath('home');
+    const id = crypto.randomUUID();
+    const executable = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/sh');
+    const args = process.platform === 'win32' ? ['-NoLogo', '-NoProfile', '-NoExit', '-Command', '-'] : ['-i'];
+    const child = spawn(executable, args, { cwd, windowsHide: true, env: { ...process.env, TERM: 'xterm-256color' } });
+    terminals.set(id, child);
+    const emit = (data) => mainWindow?.webContents.send('terminal:data', { id, data: data.toString() });
+    child.stdout.on('data', emit);
+    child.stderr.on('data', emit);
+    child.on('exit', (code) => { emit(`\r\n[process exited ${code ?? ''}]\r\n`); terminals.delete(id); });
+    if (process.platform === 'win32') child.stdin.write("$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()\r\n");
+    return { id, cwd };
+  });
+  ipcMain.handle('terminal:write', (_event, id, data) => {
+    const child = terminals.get(id);
+    if (!child || child.killed) return false;
+    child.stdin.write(String(data));
+    return true;
+  });
+  ipcMain.handle('terminal:kill', (_event, id) => {
+    const child = terminals.get(id);
+    if (child && !child.killed) child.kill();
+    terminals.delete(id);
+    return true;
+  });
+}
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1500,
+    height: 960,
+    minWidth: 1000,
+    minHeight: 680,
+    backgroundColor: '#111318',
+    title: 'Pad Local',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+  if (app.isPackaged) mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  else mainWindow.loadURL(process.env.PAD_DESKTOP_DEV_URL || 'http://127.0.0.1:3003');
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+}
+
+app.whenReady().then(() => {
+  ensureStorage();
+  registerIpc();
+  createWindow();
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+});
+
+app.on('before-quit', () => {
+  for (const child of terminals.values()) if (!child.killed) child.kill();
+  terminals.clear();
+});
+
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

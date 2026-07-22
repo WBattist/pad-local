@@ -1,6 +1,8 @@
 *.pyc
 */__pycache__/*
 node_modules
+node_modules.*
+release
 dist
 src/excalidraw
 .env
