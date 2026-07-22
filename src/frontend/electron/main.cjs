@@ -100,6 +100,16 @@ function safeWorkspacePath(candidate) {
   return resolved;
 }
 
+function safeWorkspaceDestination(candidate) {
+  const root = currentWorkspace();
+  if (!root) throw new Error('Choose a workspace folder first.');
+  const resolved = path.resolve(candidate);
+  const parent = fs.realpathSync(path.dirname(resolved));
+  const relative = path.relative(root, parent);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Path is outside the selected workspace.');
+  return resolved;
+}
+
 function listWorkspaceFiles(root, limit = 2500) {
   const ignored = new Set(['.git', 'node_modules', '.venv', 'dist', 'build', '__pycache__']);
   const results = [];
@@ -265,6 +275,19 @@ function registerIpc() {
   ipcMain.handle('workspace:refresh', () => {
     const workspacePath = currentWorkspace();
     return { path: workspacePath, files: workspacePath ? listWorkspaceFiles(workspacePath) : [] };
+  });
+  ipcMain.handle('workspace:createFile', async () => {
+    const root = currentWorkspace();
+    if (!root) throw new Error('Choose a workspace folder first.');
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Create a workspace file',
+      defaultPath: root,
+      properties: ['createDirectory', 'showOverwriteConfirmation'],
+    });
+    if (result.canceled || !result.filePath) return null;
+    const filePath = safeWorkspaceDestination(result.filePath);
+    if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '', 'utf8');
+    return { filePath, workspace: { path: root, files: listWorkspaceFiles(root) } };
   });
   ipcMain.handle('workspace:read', (_event, filePath) => {
     const resolved = safeWorkspacePath(filePath);

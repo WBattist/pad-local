@@ -21,6 +21,7 @@ declare global {
         get(): Promise<WorkspaceSnapshot>;
         choose(): Promise<WorkspaceSnapshot | null>;
         refresh(): Promise<WorkspaceSnapshot>;
+        createFile(): Promise<{ filePath: string; workspace: WorkspaceSnapshot } | null>;
         read(path: string): Promise<string>;
         write(path: string, contents: string): Promise<boolean>;
         reveal(path: string): Promise<void>;

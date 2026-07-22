@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Excalidraw } from '@atyrode/excalidraw';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
 import type { ExcalidrawElement } from '@atyrode/excalidraw/element/types';
-import { ChevronRight, Download, File, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, Download, File, FilePlus2, Folder, FolderOpen, Pencil, Plus, RefreshCw, TerminalSquare, Trash2, Upload } from 'lucide-react';
 import { desktopApi } from './desktopApi';
 import { FileEditor } from './FileEditor';
 import { TerminalPane } from './TerminalPane';
@@ -134,6 +134,15 @@ export default function App() {
     if (result) setWorkspace(result);
   };
 
+  const createFile = async () => {
+    try {
+      const result = await desktopApi.workspace?.createFile();
+      if (!result) return;
+      setWorkspace(result.workspace);
+      setSelectedFile(result.filePath);
+    } catch (cause: any) { setError(cause.message); }
+  };
+
   const exportBackup = async () => {
     if (!desktopApi.backup) return;
     try {
@@ -184,6 +193,7 @@ export default function App() {
             <span>Workspace</span>
             <div>
               <button onClick={refreshWorkspace} disabled={!workspace.path} title="Refresh"><RefreshCw size={14} /></button>
+              <button onClick={createFile} disabled={!workspace.path} title="New file"><FilePlus2 size={14} /></button>
               <button onClick={chooseWorkspace} title="Choose folder"><FolderOpen size={15} /></button>
             </div>
           </header>
@@ -231,7 +241,7 @@ export default function App() {
             />
           ) : <div className="loading-panel">Opening your local pad…</div>}
         </div>
-        {selectedFile && <FileEditor filePath={selectedFile} onClose={() => setSelectedFile('')} />}
+        {selectedFile && <FileEditor key={selectedFile} filePath={selectedFile} onClose={() => setSelectedFile('')} />}
         {terminalOpen && <TerminalPane workspacePath={workspace.path} />}
       </section>
 

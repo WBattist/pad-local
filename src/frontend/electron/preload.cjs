@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('padDesktop', {
     get: () => ipcRenderer.invoke('workspace:get'),
     choose: () => ipcRenderer.invoke('workspace:choose'),
     refresh: () => ipcRenderer.invoke('workspace:refresh'),
+    createFile: () => ipcRenderer.invoke('workspace:createFile'),
     read: (filePath) => ipcRenderer.invoke('workspace:read', filePath),
     write: (filePath, contents) => ipcRenderer.invoke('workspace:write', filePath, contents),
     reveal: (filePath) => ipcRenderer.invoke('workspace:reveal', filePath),
