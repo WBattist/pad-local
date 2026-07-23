@@ -13,7 +13,7 @@ const monacoVscodeApiRoot = pathResolve(
   dirname(require.resolve('@codingame/monaco-vscode-api')),
   'vscode',
   'src'
-) + '\\';
+);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -38,17 +38,33 @@ export default defineConfig(({ mode }) => {
       {
         // Resolve Code-OSS monaco-vscode-api internal subpath imports
         // (`@codingame/monaco-vscode-api/vscode/<rest>`) directly to the
-        // matching source file at `<api>/vscode/src/<rest>.js`. The package
-        // exports map defines this exact substitution but Rollup fails to
-        // apply it for some transitive cross-package imports.
+        // matching source file at `<api>/vscode/src/<rest>.js` (or `.css`).
+        // The package exports map defines this exact substitution but Rollup
+        // fails to apply it for transitive cross-package imports. This
+        // resolver short-circuits that resolution. We compute the absolute
+        // target path with pathResolve so it is correct on Windows AND Linux.
         name: 'pad-local-monaco-vscode-api-subpath-resolver',
         enforce: 'pre',
         async resolveId(source, importer, options) {
           if (!source.startsWith('@codingame/monaco-vscode-api/vscode/')) return undefined;
           const sub = source.slice('@codingame/monaco-vscode-api/vscode/'.length);
-          const candidate = monacoVscodeApiRoot + sub + '.js';
-          const resolved = await this.resolve(candidate, importer, { ...options, skipSelf: true });
-          return resolved ?? undefined;
+          // Preserve any `?query` suffix (e.g. `?inline` from the css plugin below).
+          let query = '';
+          let stem = sub;
+          const qIndex = sub.indexOf('?');
+          if (qIndex >= 0) { query = sub.slice(qIndex); stem = sub.slice(0, qIndex); }
+          // The package exports map exposes both `./vscode/*.css` and `./vscode/*`
+          // (the latter substituting to `./vscode/src/*.js`). Pick the extension
+          // accordingly so we don't append `.js` onto a `.css` import.
+          const cssMatch = stem.match(/\.css$/);
+          const target = cssMatch
+            ? pathResolve(monacoVscodeApiRoot, stem)
+            : pathResolve(monacoVscodeApiRoot, stem + '.js');
+          const resolved = await this.resolve(target + query, importer, { ...options, skipSelf: true });
+          if (resolved) return resolved;
+          // Fall back to returning the absolute path directly; Rollup accepts
+          // an {id} with an absolute filesystem path.
+          return query ? { id: target + query } : { id: target };
         },
       },
       {
