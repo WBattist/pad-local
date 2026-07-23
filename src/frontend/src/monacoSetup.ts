@@ -124,10 +124,14 @@ function attachWorkspaceOverlay(workspacePath: string) {
     return p;
   };
 
+  // Event<T> shape Code OSS expects: a callable that registers a listener
+  // and returns a Disposable. We never emit (host owns files), so no-op.
+  const noopEvent = (_listener: any, _thisArgs?: any, _disposables?: any) => ({ dispose() {} }) as any;
+
   const provider = {
     capabilities: 0b10 /* Readonly */ | 0b100 /* FileReadWrite */,
-    onDidChangeCapabilities: { dispose() {} },
-    onDidChangeFile: { dispose() {} },
+    onDidChangeCapabilities: noopEvent,
+    onDidChangeFile: noopEvent,
     async stat(_uri: monaco.Uri) {
       return {
         type: 1 /* FileType.File */,
