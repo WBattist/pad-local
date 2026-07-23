@@ -56,14 +56,10 @@ const textMateWorkerUrl = new URL('@codingame/monaco-vscode-textmate-service-ove
 const outputLinkWorkerUrl = new URL('@codingame/monaco-vscode-output-service-override/worker', import.meta.url);
 const languageDetectionWorkerUrl = new URL('@codingame/monaco-vscode-language-detection-worker-service-override/worker', import.meta.url);
 
-const workers: Record<string, Worker> = {
-  editorWorkerService: undefined as unknown as Worker,
-  extensionHostWorkerMain: undefined as unknown as Worker,
-  TextMateWorker: undefined as unknown as Worker,
-  OutputLinkDetectionWorker: undefined as unknown as Worker,
-  LanguageDetectionWorker: undefined as unknown as Worker,
-};
-
+// Code OSS asks MonacoEnvironment.getWorkerUrl(label) for every worker it
+// spawns: editor worker, extension host, TextMate, output-link, language
+// detection. We map labels -> Vite-built worker URLs (constructed via
+// import.meta.url so dev and prod both resolve).
 const workerUrls: Record<string, string> = {
   editorWorkerService: editorWorkerUrl.toString(),
   extensionHostWorkerMain: extensionHostWorkerUrl.toString(),
@@ -73,11 +69,13 @@ const workerUrls: Record<string, string> = {
 };
 
 window.MonacoEnvironment = {
-  getWorker(_, label) {
-    if (!workers[label]) {
-      workers[label] = new Worker(workerUrls[label], { type: 'module' });
-    }
-    return workers[label];
+  getWorkerUrl(_, label) {
+    const url = workerUrls[label];
+    if (!url) throw new Error(`No worker URL registered for label: ${label}`);
+    return url;
+  },
+  getWorkerOptions(_, label) {
+    return { type: 'module' as WorkerType };
   },
 };
 
