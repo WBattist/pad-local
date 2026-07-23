@@ -55,6 +55,14 @@ const extensionHostWorkerUrl = new URL('@codingame/monaco-vscode-api/workers/ext
 const textMateWorkerUrl = new URL('@codingame/monaco-vscode-textmate-service-override/worker', import.meta.url);
 const outputLinkWorkerUrl = new URL('@codingame/monaco-vscode-output-service-override/worker', import.meta.url);
 const languageDetectionWorkerUrl = new URL('@codingame/monaco-vscode-language-detection-worker-service-override/worker', import.meta.url);
+// The extension host runs inside an iframe; Code OSS asks
+// MonacoEnvironment.getWorkerUrl(_, 'webWorkerExtensionHostIframe') for
+// the iframe HTML URL so it can construct <iframe src="...">. It's a
+// static HTML asset shipped by the extensions service override package.
+const webWorkerExtensionHostIframeUrl = new URL(
+  '@codingame/monaco-vscode-extensions-service-override/vscode/src/vs/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html',
+  import.meta.url,
+);
 
 // Code OSS asks MonacoEnvironment.getWorkerUrl(label) for every worker it
 // spawns: editor worker, extension host, TextMate, output-link, language
@@ -66,6 +74,7 @@ const workerUrls: Record<string, string> = {
   TextMateWorker: textMateWorkerUrl.toString(),
   OutputLinkDetectionWorker: outputLinkWorkerUrl.toString(),
   LanguageDetectionWorker: languageDetectionWorkerUrl.toString(),
+  webWorkerExtensionHostIframe: webWorkerExtensionHostIframeUrl.toString(),
 };
 
 window.MonacoEnvironment = {
