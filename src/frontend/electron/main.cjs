@@ -8,6 +8,16 @@ const path = require('node:path');
 const terminals = new Map();
 let mainWindow;
 let dataRoot;
+
+// Persistent renderer crash/error log: the sandboxed renderer cannot write to
+// disk directly, so we funnel every console-message through the main process.
+// Appended (not truncated) so a renderer restart doesn't wipe prior errors.
+const rendererLogPath = path.join(app.getPath('userData'), 'renderer.log');
+function logRenderer(level, message, sourceId, line) {
+  const stamp = new Date().toISOString();
+  const line_ = `[${stamp}] [${level}] ${message} (${sourceId}:${line})\n`;
+  try { fs.appendFileSync(rendererLogPath, line_, 'utf8'); } catch { /* best effort */ }
+}
 let padsRoot;
 let statePath;
 
@@ -410,11 +420,27 @@ function createWindow() {
     if (process.env.PAD_DESKTOP_DEVTOOLS === '1') mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    const tag = `[renderer:${['debug','info','warn','error'][level] || 'info'}]`;
+    const name = ['debug', 'info', 'warn', 'error'][level] || 'info';
+    const tag = `[renderer:${name}]`;
     console.log(tag, message, `(${sourceId}:${line})`);
+    logRenderer(name, String(message), String(sourceId), Number(line) || 0);
   });
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[renderer:gone]', JSON.stringify(details));
+    const payload = JSON.stringify(details);
+    console.error('[renderer:gone]', payload);
+    logRenderer('error', `render-process-gone: ${payload}`, 'main', 0);
+  });
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[renderer:unresponsive]');
+    logRenderer('error', 'renderer unresponsive', 'main', 0);
+  });
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    const payload = `did-fail-load code=${errorCode} desc=${errorDescription} url=${validatedURL}`;
+    console.error('[renderer]', payload);
+    logRenderer('error', payload, 'main', 0);
+  });
+  mainWindow.webContents.on('did-finish-load', () => {
+    logRenderer('info', 'did-finish-load', 'main', 0);
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     try {
