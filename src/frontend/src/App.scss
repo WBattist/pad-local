@@ -152,6 +152,20 @@ button.traffic-light { cursor: pointer; }
 .error-toast { border: 1px solid #ff453a66; background: #451f23e8; color: #ffd7db; }
 .notice-toast { border: 1px solid #64d2ff55; background: #18303aeb; color: #d6f4ff; }
 
+/* Full Code-OSS workbench variant replaces the bespoke chrome. The host
+   just gets a sized container that Code OSS paints activity bar / sidebar /
+   editor groups / status bar into. */
+.embedded-editor--workbench { background: #1e1e1e; }
+.vscode-body--workbench { position: relative; }
+.vscode-workbench-host { position: absolute; inset: 0; }
+/* Code OSS uses inline styles + a stylesheet that targets the workbench
+   container's descendants. Make sure our React shells don't impose styles
+   that would override its layout. */
+.vscode-workbench-host:empty { background: #1e1e1e; }
+.vscode-error { position: absolute; inset: 12px; z-index: 10; padding: 18px; border-radius: 12px; background: #2a1517; color: #ffd7db; font-size: 12px; }
+.vscode-error strong { display: block; margin-bottom: 8px; font-size: 14px; }
+.vscode-error pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
