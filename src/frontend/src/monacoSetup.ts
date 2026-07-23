@@ -48,42 +48,24 @@ import '@codingame/monaco-vscode-shellscript-default-extension';
 
 import 'vscode/localExtensionHost';
 
-loader.config({ monaco });
+// Code OSS asks MonacoEnvironment.getWorkerUrl(label) for each worker label
+// it spawns. Editor worker resolves fine from pnpm hoisted dep via new URL();
+// extension host worker and iframe are copied to public/workers/ at build time
+// (where you point vite at them with base-relative paths).
+const base = import.meta.env.BASE_URL;
+const p = (name: string) => `${base}workers/${name}`;
 
-const editorWorkerUrl = new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url);
-const extensionHostWorkerUrl = new URL('@codingame/monaco-vscode-api/workers/extensionHost.worker', import.meta.url);
-const textMateWorkerUrl = new URL('@codingame/monaco-vscode-textmate-service-override/worker', import.meta.url);
-const outputLinkWorkerUrl = new URL('@codingame/monaco-vscode-output-service-override/worker', import.meta.url);
-const languageDetectionWorkerUrl = new URL('@codingame/monaco-vscode-language-detection-worker-service-override/worker', import.meta.url);
-// The extension host runs inside an iframe; Code OSS asks
-// MonacoEnvironment.getWorkerUrl(_, 'webWorkerExtensionHostIframe') for
-// the iframe HTML URL so it can construct <iframe src="...">. It's a
-// static HTML asset shipped by the extensions service override package.
-const webWorkerExtensionHostIframeUrl = new URL(
-  '@codingame/monaco-vscode-extensions-service-override/vscode/src/vs/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html',
-  import.meta.url,
-);
-
-// Code OSS asks MonacoEnvironment.getWorkerUrl(label) for every worker it
-// spawns: editor worker, extension host, TextMate, output-link, language
-// detection. We map labels -> Vite-built worker URLs (constructed via
-// import.meta.url so dev and prod both resolve).
-const workerUrls: Record<string, string> = {
-  editorWorkerService: editorWorkerUrl.toString(),
-  extensionHostWorkerMain: extensionHostWorkerUrl.toString(),
-  TextMateWorker: textMateWorkerUrl.toString(),
-  OutputLinkDetectionWorker: outputLinkWorkerUrl.toString(),
-  LanguageDetectionWorker: languageDetectionWorkerUrl.toString(),
-  webWorkerExtensionHostIframe: webWorkerExtensionHostIframeUrl.toString(),
+const workerUrls: Record<string, string | undefined> = {
+  editorWorkerService: new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url).toString(),
+  extensionHostWorkerMain: p('extensionHost.worker.js'),
+  webWorkerExtensionHostIframe: p('webWorkerExtensionHostIframe.html'),
 };
 
 window.MonacoEnvironment = {
   getWorkerUrl(_, label) {
-    const url = workerUrls[label];
-    if (!url) throw new Error(`No worker URL registered for label: ${label}`);
-    return url;
+    return workerUrls[label] || workerUrls['editorWorkerService'] || '';
   },
-  getWorkerOptions(_, label) {
+  getWorkerOptions(_, _label) {
     return { type: 'module' as WorkerType };
   },
 };
