@@ -1,4 +1,4 @@
-# Pad Local
+# Pad Local - v2.2.2
 
 Pad Local is a private, local-first whiteboard and development workspace packaged as a normal
 desktop app. The Excalidraw canvas fills the window, pad tabs live in the canvas footer, and
