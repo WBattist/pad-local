@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Excalidraw, Footer, MainMenu } from '@atyrode/excalidraw';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
 import type { ExcalidrawElement } from '@atyrode/excalidraw/element/types';
 import { Code2, Database, Download, FolderOpen, TerminalSquare, Upload } from 'lucide-react';
 import { CanvasTabs } from './CanvasTabs';
-import { EmbeddedEditor } from './EmbeddedEditor';
 import { TerminalPane } from './TerminalPane';
 import { desktopApi } from './desktopApi';
 import './App.scss';
+
+// Lazy-load the embedded VS Code editor. It pulls in the @codingame/monaco-vscode
+// service graph (~3000 modules) which we don't want to evaluate eagerly at app
+// boot. Light-tree modules only load when a user actually opens a code window.
+const EmbeddedEditor = lazy(() => import('./EmbeddedEditor').then((m) => ({ default: m.EmbeddedEditor })));
 
 const cleanScene = (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles): LocalScene => {
   const serializable = JSON.parse(JSON.stringify({ elements, appState, files }));
@@ -278,7 +282,7 @@ export default function App() {
       return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><TerminalPane workspacePath={workspace.path} embedded onClose={() => closeEmbedded(element.id)} onDragStart={(event) => manipulateEmbedded(element.id, event, 'move')} /><i className="window-resize-handle" onPointerDown={(event) => manipulateEmbedded(element.id, event, 'resize')} /></div>;
     }
     if (element.link === '!editor') {
-      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><EmbeddedEditor element={element} excalidrawAPI={canvasApi} workspace={workspace} onChooseWorkspace={chooseWorkspace} onCreateFile={createWorkspaceFile} onRefreshWorkspace={refreshWorkspace} onClose={() => closeEmbedded(element.id)} onDragStart={(event) => manipulateEmbedded(element.id, event, 'move')} /><i className="window-resize-handle" onPointerDown={(event) => manipulateEmbedded(element.id, event, 'resize')} /></div>;
+      return <div className="canvas-window" onPointerDown={stopCanvasEvent} onKeyDown={stopCanvasEvent} onKeyUp={stopCanvasEvent} onWheel={stopCanvasEvent}><Suspense fallback={<div className="editor-loading">Loading VS Code…</div>}><EmbeddedEditor element={element} excalidrawAPI={canvasApi} workspace={workspace} onChooseWorkspace={chooseWorkspace} onCreateFile={createWorkspaceFile} onRefreshWorkspace={refreshWorkspace} onClose={() => closeEmbedded(element.id)} onDragStart={(event) => manipulateEmbedded(element.id, event, 'move')} /></Suspense><i className="window-resize-handle" onPointerDown={(event) => manipulateEmbedded(element.id, event, 'resize')} /></div>;
     }
     return null;
   }, [canvasApi, chooseWorkspace, closeEmbedded, createWorkspaceFile, manipulateEmbedded, refreshWorkspace, workspace]);
