@@ -68,7 +68,7 @@ export function TerminalPane({ workspacePath, embedded = false, onClose, onDragS
     <section className={`terminal-pane ${embedded ? 'embedded' : ''}`}>
       <header className="mac-titlebar window-drag-handle" onPointerDown={onDragStart}>
         <div className="traffic-lights" aria-label="Window controls">
-          <button className="traffic-light close" onClick={onClose} title="Close Terminal" />
+          <button className="traffic-light close" onClick={onClose} title="Close Terminal" aria-label="Close Terminal">×</button>
         </div>
         <span className="window-title">Terminal</span>
         <span className="terminal-cwd">{status}</span>

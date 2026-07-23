@@ -83,11 +83,12 @@ html[data-window-gesture="resize"], html[data-window-gesture="resize"] * { curso
   box-shadow: inset 0 1px #ffffff0d; user-select: none;
 }
 .traffic-lights { display: flex; align-items: center; }
-.traffic-light { width: 12px; height: 12px; min-width: 12px; padding: 0; border: 0; border-radius: 50%; box-shadow: inset 0 0 0 .5px #0005; transition: filter .18s ease, transform .18s ease; }
+.traffic-light { width: 24px; height: 24px; min-width: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; box-shadow: none; transition: color .18s ease, background .18s ease, transform .18s ease; }
 button.traffic-light { cursor: pointer; }
 .traffic-light:hover { filter: brightness(1.15); transform: scale(1.08); }
 .traffic-light:active { transform: scale(.9); }
-.traffic-light.close { background: #ff5f57; }
+.traffic-light.close { background: transparent; color: #a6a6b0; font: 400 20px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.traffic-light.close:hover { background: #ff453a; color: white; }
 .window-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; color: #d7d7dd; font-size: 12px; font-weight: 600; }
 .titlebar-actions { display: flex; justify-content: flex-end; gap: 2px; }
 .titlebar-actions button, .vscode-explorer header button {

@@ -12,3 +12,4 @@ config/runtime/
 src/frontend/.env.local
 .vscode/settings.json
 *.local.env
+logs/

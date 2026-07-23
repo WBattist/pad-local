@@ -405,7 +405,17 @@ function createWindow() {
     },
   });
   if (app.isPackaged) mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
-  else mainWindow.loadURL(process.env.PAD_DESKTOP_DEV_URL || 'http://127.0.0.1:3003');
+  else {
+    mainWindow.loadURL(process.env.PAD_DESKTOP_DEV_URL || 'http://localhost:3003');
+    if (process.env.PAD_DESKTOP_DEVTOOLS === '1') mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const tag = `[renderer:${['debug','info','warn','error'][level] || 'info'}]`;
+    console.log(tag, message, `(${sourceId}:${line})`);
+  });
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[renderer:gone]', JSON.stringify(details));
+  });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const protocol = new URL(url).protocol;

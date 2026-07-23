@@ -90,3 +90,4 @@ Build Linux packages with `pnpm dist:linux` from `src/frontend`.
 
 The former Docker/Keycloak/Coder implementation remains in Git history but is not part of the
 packaged desktop runtime.
+ 

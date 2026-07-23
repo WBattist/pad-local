@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import Editor from '@monaco-editor/react';
 import type { ExcalidrawImperativeAPI } from '@atyrode/excalidraw/types';
-import { ChevronRight, ExternalLink, FileCode2, Folder, FolderOpen, Image as ImageIcon, PanelLeft, Plus, RefreshCw, Save } from 'lucide-react';
+import { ChevronRight, ExternalLink, FileCode2, Folder, FolderOpen, Image as ImageIcon, PanelLeft, Plus, Puzzle, RefreshCw, Save } from 'lucide-react';
 import './monacoSetup';
 
 const languageFor = (filePath: string) => {
@@ -161,17 +161,32 @@ export function EmbeddedEditor({
     window.setTimeout(() => setStatus(''), 1800);
   };
 
+  const installExtension = async () => {
+    const extensionId = window.prompt('Install a web extension from Open VSX\n\nEnter publisher.extension:')?.trim();
+    if (!extensionId) return;
+    try {
+      setStatus(`Installing ${extensionId}…`);
+      const vscode = await import('vscode');
+      await vscode.commands.executeCommand('workbench.extensions.installExtension', extensionId);
+      setStatus(`${extensionId} installed`);
+    } catch (error: any) {
+      setStatus(error?.message || `Could not install ${extensionId}`);
+    }
+    window.setTimeout(() => setStatus(''), 2600);
+  };
+
   return (
     <section className="embedded-editor">
       <header className="mac-titlebar window-drag-handle" onPointerDown={onDragStart}>
         <div className="traffic-lights" aria-label="Window controls">
-          <button className="traffic-light close" onClick={onClose} title="Close VS Code" />
+          <button className="traffic-light close" onClick={onClose} title="Close VS Code" aria-label="Close VS Code">×</button>
         </div>
         <span className="window-title">{filePath ? `${filename}${dirty ? ' •' : ''}` : 'VS Code'}</span>
         <div className="titlebar-actions">
           <button onClick={() => setExplorerOpen((value) => !value)} title="Toggle Explorer"><PanelLeft size={14} /></button>
           <button onClick={createFile} title="New file"><Plus size={15} /></button>
           <button onClick={chooseWorkspace} title="Open folder"><FolderOpen size={14} /></button>
+          <button onClick={installExtension} title="Install VS Code web extension from Open VSX"><Puzzle size={14} /></button>
           <button onClick={openInVSCode} disabled={!workspace.path} title="Open in desktop VS Code with your extensions"><ExternalLink size={14} /></button>
           <button onClick={() => void save()} disabled={!dirty} title="Save"><Save size={14} /></button>
         </div>
